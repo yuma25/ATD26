@@ -1,0 +1,14 @@
+pre-commit:
+  parallel: true
+  commands:
+    linter:
+      glob: "*.{js,ts,tsx,go,json,md}"
+      run: make lint
+    formatter:
+      glob: "*.{js,ts,tsx,json,md}"
+      run: pnpm dlx prettier --write {staged_files} && git add {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm dlx commitlint --edit {1}
