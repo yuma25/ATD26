@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { supabase, signInAnonymously } from '../backend/lib/supabase';
-import { Badge } from '../backend/types';
-import { BadgeService } from '../backend/services/badgeService';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { supabase, signInAnonymously } from "../backend/lib/supabase";
+import { Badge } from "../backend/types";
+import { BadgeService } from "../backend/services/badgeService";
 
 export const useAR = () => {
   const [status, setStatus] = useState<"init" | "loading" | "started">("init");
@@ -24,19 +24,23 @@ export const useAR = () => {
 
   const cleanupAR = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
-    const sceneEl = document.querySelector('a-scene');
+    const sceneEl = document.querySelector("a-scene");
     if (sceneEl) {
       try {
         // @ts-expect-error - AFRAME is global
         if (sceneEl.pause) sceneEl.pause();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       sceneEl.remove();
     }
-    document.querySelectorAll('video').forEach(v => {
+    document.querySelectorAll("video").forEach((v) => {
       try {
         const stream = v.srcObject as MediaStream | null;
         if (stream) stream.getTracks().forEach((t) => t.stop());
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       v.remove();
     });
   }, []);
@@ -56,19 +60,22 @@ export const useAR = () => {
     }
   }, []);
 
-  const startProgress = useCallback((badgeId: string) => {
-    if (acquiredRef.current || progressRef.current >= 100) return;
-    
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      progressRef.current += 2;
-      setProgress(Math.floor(progressRef.current));
-      if (progressRef.current >= 100) {
-        if (timerRef.current) clearInterval(timerRef.current);
-        handleSuccess(badgeId);
-      }
-    }, 30);
-  }, [handleSuccess]);
+  const startProgress = useCallback(
+    (badgeId: string) => {
+      if (acquiredRef.current || progressRef.current >= 100) return;
+
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        progressRef.current += 2;
+        setProgress(Math.floor(progressRef.current));
+        if (progressRef.current >= 100) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          handleSuccess(badgeId);
+        }
+      }, 30);
+    },
+    [handleSuccess],
+  );
 
   const resetProgress = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -79,18 +86,20 @@ export const useAR = () => {
   }, []);
 
   const setupListeners = useCallback(() => {
-    const targets = document.querySelectorAll('[mindar-image-target]');
-    const ghostEl = document.querySelector('#ghost');
+    const targets = document.querySelectorAll("[mindar-image-target]");
+    const ghostEl = document.querySelector("#ghost");
 
     targets.forEach((targetEl, index) => {
-      targetEl.addEventListener('targetFound', () => {
-        const badge = allBadges.find(b => b.target_index === index);
+      targetEl.addEventListener("targetFound", () => {
+        const badge = allBadges.find((b) => b.target_index === index);
         if (!badge) return;
 
         setActiveBadge(badge);
         setIsFound(true);
-        ghostEl?.setAttribute('visible', 'false');
-        document.querySelector(`#model-container-${index}`)?.setAttribute('visible', 'true');
+        ghostEl?.setAttribute("visible", "false");
+        document
+          .querySelector(`#model-container-${index}`)
+          ?.setAttribute("visible", "true");
 
         const alreadyHad = acquiredBadgeIdsRef.current.includes(badge.id);
         setAcquired(alreadyHad);
@@ -99,10 +108,12 @@ export const useAR = () => {
         if (!alreadyHad) startProgress(badge.id);
       });
 
-      targetEl.addEventListener('targetLost', () => {
+      targetEl.addEventListener("targetLost", () => {
         setIsFound(false);
-        ghostEl?.setAttribute('visible', 'true');
-        document.querySelector(`#model-container-${index}`)?.setAttribute('visible', 'false');
+        ghostEl?.setAttribute("visible", "true");
+        document
+          .querySelector(`#model-container-${index}`)
+          ?.setAttribute("visible", "false");
         resetProgress();
       });
     });
@@ -114,11 +125,11 @@ export const useAR = () => {
       if (user && supabase) {
         const [badges, myAcquiredIds] = await Promise.all([
           BadgeService.getAllBadges(),
-          BadgeService.getAcquiredBadgeIds(user.id)
+          BadgeService.getAcquiredBadgeIds(user.id),
         ]);
         setAllBadges(badges);
         acquiredBadgeIdsRef.current = myAcquiredIds;
-        if (myAcquiredIds.includes('butterfly-001')) {
+        if (myAcquiredIds.includes("butterfly-001")) {
           setAcquired(true);
           acquiredRef.current = true;
         }
@@ -131,15 +142,22 @@ export const useAR = () => {
   const startAR = async () => {
     setStatus("loading");
     try {
-      const load = (src: string) => new Promise((res, rej) => {
-        if (document.querySelector(`script[src="${src}"]`)) return res(true);
-        const s = document.createElement('script');
-        s.src = src; s.onload = res; s.onerror = rej;
-        document.head.appendChild(s);
-      });
+      const load = (src: string) =>
+        new Promise((res, rej) => {
+          if (document.querySelector(`script[src="${src}"]`)) return res(true);
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = res;
+          s.onerror = rej;
+          document.head.appendChild(s);
+        });
       await load("https://aframe.io/releases/1.5.0/aframe.min.js");
-      await load("https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js");
-      await load("https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js");
+      await load(
+        "https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js",
+      );
+      await load(
+        "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js",
+      );
       setStatus("started");
     } catch {
       setStatus("init");
@@ -147,7 +165,12 @@ export const useAR = () => {
   };
 
   useEffect(() => {
-    if (status === "started" && arContainerRef.current && !sceneInjectedRef.current && allBadges.length > 0) {
+    if (
+      status === "started" &&
+      arContainerRef.current &&
+      !sceneInjectedRef.current &&
+      allBadges.length > 0
+    ) {
       sceneInjectedRef.current = true;
       arContainerRef.current.innerHTML = `
         <a-scene mindar-image="imageTargetSrc: /targets.mind; autoStart: false; uiLoading: no; uiScanning: no;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights: true, exposure: 1.5, alpha: true" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" loading-screen="enabled: false" embedded style="width: 100%; height: 100%;">
@@ -157,7 +180,9 @@ export const useAR = () => {
               <a-gltf-model src="#m" scale="0.08 0.08 0.08" opacity="0.3" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true"></a-gltf-model>
             </a-entity>
           </a-camera>
-          ${[0,1,2,3,4,5].map(i => `
+          ${[0, 1, 2, 3, 4, 5]
+            .map(
+              (i) => `
             <a-entity mindar-image-target="targetIndex: ${i}">
               <a-entity id="model-container-${i}" visible="false">
                 <a-entity animation="property: rotation; to: 0 0 360; dur: 12000; easing: linear; loop: true">
@@ -169,22 +194,24 @@ export const useAR = () => {
                 </a-entity>
               </a-entity>
             </a-entity>
-          `).join('')}
+          `,
+            )
+            .join("")}
         </a-scene>
       `;
 
-      const sceneEl = arContainerRef.current.querySelector('a-scene');
-      
+      const sceneEl = arContainerRef.current.querySelector("a-scene");
+
       const boot = () => {
         // @ts-expect-error - AFRAME is global
-        if (sceneEl?.systems?.['mindar-image-system']) {
+        if (sceneEl?.systems?.["mindar-image-system"]) {
           // @ts-expect-error - AFRAME is global
-          sceneEl.systems['mindar-image-system'].start();
+          sceneEl.systems["mindar-image-system"].start();
         }
-        setTimeout(() => window.dispatchEvent(new Event('resize')), 2000);
+        setTimeout(() => window.dispatchEvent(new Event("resize")), 2000);
         setTimeout(() => {
-          if (document.querySelector('a-scene')) {
-            window.dispatchEvent(new Event('resize'));
+          if (document.querySelector("a-scene")) {
+            window.dispatchEvent(new Event("resize"));
             setupListeners();
           }
         }, 3000);
@@ -193,14 +220,16 @@ export const useAR = () => {
       // @ts-expect-error - AFRAME is global
       if (sceneEl?.hasLoaded) boot();
       // @ts-expect-error - AFRAME is global
-      else sceneEl?.addEventListener('loaded', boot);
+      else sceneEl?.addEventListener("loaded", boot);
     }
   }, [status, allBadges, setupListeners]);
 
   const navigateHome = useCallback(() => {
     setIsExiting(true);
     cleanupAR();
-    setTimeout(() => { window.location.href = '/'; }, 300);
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 300);
   }, [cleanupAR]);
 
   return {
@@ -214,6 +243,6 @@ export const useAR = () => {
     arContainerRef,
     startAR,
     navigateHome,
-    setShowSuccess
+    setShowSuccess,
   };
 };

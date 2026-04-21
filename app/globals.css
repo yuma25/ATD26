@@ -10,8 +10,7 @@
     @apply antialiased text-[#3e2f28] bg-[#e8e2d2] selection:bg-[#d4c5a9];
     font-family: var(--font-serif);
     /* シンプルな羊皮紙の質感 */
-    background-image: 
-      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.1'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.1'/%3E%3C/svg%3E");
     background-attachment: fixed;
   }
 
@@ -23,13 +22,24 @@
 
 /* エネルギーパス（淡い黄金色）のアニメーション */
 @keyframes energy-flow {
-  from { stroke-dashoffset: 20; }
-  to { stroke-dashoffset: 0; }
+  from {
+    stroke-dashoffset: 20;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.3)); opacity: 0.8; }
-  50% { filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.5)); opacity: 1; }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.3));
+    opacity: 0.8;
+  }
+  50% {
+    filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.5));
+    opacity: 1;
+  }
 }
 
 .glow-path {
@@ -44,13 +54,14 @@
 /* マスキングテープ（標本を貼る用） */
 @utility tape {
   @apply absolute h-8 w-24 bg-[#fffdf0]/40 backdrop-blur-[1px] border-l border-r border-black/5 rotate-[-3deg] z-20;
-  box-shadow: 1px 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.05);
   mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,0 Q5,5 10,0 T20,0 T30,0 T40,0 T50,0 T60,0 T70,0 T80,0 T90,0 T100,0 L100,40 Q95,35 90,40 T80,40 T70,40 T60,40 T50,40 T40,40 T30,40 T20,40 T10,40 T0,40 Z' fill='black'/%3E%3C/svg%3E");
   mask-size: cover;
 }
 
 /* スクロールとオーバーフローの制御 */
-html, body {
+html,
+body {
   overflow-x: hidden;
   scroll-behavior: smooth;
   margin: 0;

@@ -1,35 +1,60 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Camera, ChevronLeft, Sparkles, RefreshCw } from 'lucide-react';
+import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+import { Sparkles } from "lucide-react";
 
 export default function ReleasePage() {
   const searchParams = useSearchParams();
-  const modelUrl = searchParams.get('model') || '/butterfly.glb';
-  const name = searchParams.get('name') || '標本';
+  const modelUrl = searchParams.get("model") || "/butterfly.glb";
+  const name = searchParams.get("name") || "標本";
 
   const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState("init");
   const [isExiting, setIsExiting] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
-  
+
   const arContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setMounted(true);
-    return () => cleanupAR();
-  }, []);
-
   const cleanupAR = () => {
-    const sceneEl = document.querySelector('a-scene');
+    const sceneEl = document.querySelector("a-scene");
     if (sceneEl) sceneEl.remove();
-    document.querySelectorAll('video').forEach(v => {
-      const s = v.srcObject as any;
-      if (s) s.getTracks().forEach((t: any) => t.stop());
+    document.querySelectorAll("video").forEach((v) => {
+      const s = v.srcObject as MediaStream | null;
+      if (s) s.getTracks().forEach((t) => t.stop());
       v.remove();
     });
   };
+
+  const setupCameraBackground = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      const video = document.createElement("video");
+      video.srcObject = stream;
+      video.setAttribute("autoplay", "");
+      video.setAttribute("playsinline", "");
+      video.style.position = "fixed";
+      video.style.top = "0";
+      video.style.left = "0";
+      video.style.width = "100vw";
+      video.style.height = "100vh";
+      video.style.objectFit = "cover";
+      video.style.zIndex = "-1";
+      video.style.filter = "brightness(1.2)";
+      document.body.appendChild(video);
+      video.play();
+    } catch (e) {
+      console.error("Camera failed", e);
+    }
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+    return () => cleanupAR();
+  }, []);
 
   /**
    * 写真を撮影して保存する
@@ -39,8 +64,9 @@ export default function ReleasePage() {
     setIsCapturing(true);
 
     try {
-      const sceneEl = document.querySelector('a-scene') as any;
-      const videoEl = document.querySelector('video');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sceneEl = document.querySelector("a-scene") as any;
+      const videoEl = document.querySelector("video");
       if (!sceneEl || !videoEl) {
         console.error("Required elements not found");
         return;
@@ -54,8 +80,8 @@ export default function ReleasePage() {
       }
 
       // 2. キャンバスの準備
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
       // ビデオの実際の解像度を使用
@@ -66,33 +92,30 @@ export default function ReleasePage() {
 
       // 3. カメラ映像を書き込む（反転などが必要な場合はここで調整）
       ctx.drawImage(videoEl, 0, 0, width, height);
-      
+
       // 4. A-Frameのキャンバスを取得して重ねる
-      // a-sceneのキャンバスはCSSでリサイズされている可能性があるため、
-      // 元の解像度で取得して、ビデオのサイズに合わせて描画
       const threeCanvas = sceneEl.canvas;
       if (threeCanvas) {
         ctx.drawImage(threeCanvas, 0, 0, width, height);
       }
 
       // 5. ダウンロード処理
-      const dataUrl = canvas.toDataURL('image/png', 1.0);
-      const link = document.createElement('a');
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const dataUrl = canvas.toDataURL("image/png", 1.0);
+      const link = document.createElement("a");
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .slice(0, 19);
       link.download = `Specimen_${name}_${timestamp}.png`;
       link.href = dataUrl;
-      
-      // モバイルブラウザ対応のためのダミー要素追加
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      console.log("Photo captured successfully");
     } catch (e) {
       console.error("Capture failed", e);
       alert("写真の保存に失敗しました。カメラの権限等を確認してください。");
     } finally {
-      // フラッシュ演出の時間を考慮して少し待つ
       setTimeout(() => setIsCapturing(false), 800);
     }
   };
@@ -100,18 +123,23 @@ export default function ReleasePage() {
   const startAR = async () => {
     setStatus("loading");
     try {
-      const load = (src: string) => new Promise((res, rej) => {
-        if (document.querySelector(`script[src="${src}"]`)) return res(true);
-        const s = document.createElement('script');
-        s.src = src; s.onload = res; s.onerror = rej;
-        document.head.appendChild(s);
-      });
+      const load = (src: string) =>
+        new Promise((res, rej) => {
+          if (document.querySelector(`script[src="${src}"]`)) return res(true);
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = res;
+          s.onerror = rej;
+          document.head.appendChild(s);
+        });
 
       await load("https://aframe.io/releases/1.5.0/aframe.min.js");
-      await load("https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js");
-      
+      await load(
+        "https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js",
+      );
+
       setStatus("started");
-    } catch (e) {
+    } catch {
       setStatus("init");
     }
   };
@@ -147,70 +175,178 @@ export default function ReleasePage() {
     }
   }, [status, modelUrl]);
 
-  const setupCameraBackground = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.setAttribute('autoplay', '');
-      video.setAttribute('playsinline', '');
-      video.style.position = 'fixed';
-      video.style.top = '0';
-      video.style.left = '0';
-      video.style.width = '100vw';
-      video.style.height = '100vh';
-      video.style.objectFit = 'cover';
-      video.style.zIndex = '-1';
-      video.style.filter = 'brightness(1.2)';
-      document.body.appendChild(video);
-      video.play();
-    } catch (e) {
-      console.error("Camera failed", e);
-    }
-  };
-
   if (!mounted) return null;
 
   return (
-    <div style={{ margin: 0, overflow: 'hidden', height: '100vh', width: '100vw', backgroundColor: 'transparent', position: 'fixed', top: 0, left: 0, fontFamily: 'sans-serif' }}>
-      
+    <div
+      style={{
+        margin: 0,
+        overflow: "hidden",
+        height: "100vh",
+        width: "100vw",
+        backgroundColor: "transparent",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        fontFamily: "sans-serif",
+      }}
+    >
       {isExiting && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 5000, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 5000,
+            background: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
           <div className="spinner"></div>
         </div>
       )}
 
       {status !== "started" && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 2000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fff', color: '#000' }}>
-          <div style={{ fontSize: '80px', marginBottom: '20px', animation: 'float 3s ease-in-out infinite' }}>🦋</div>
-          <h1 style={{ fontSize: '18px', fontWeight: '900', marginBottom: '40px', letterSpacing: '0.2em' }}>READY TO RELEASE</h1>
-          <button onClick={startAR} style={{ padding: '20px 60px', fontSize: '14px', fontWeight: '900', backgroundColor: '#3b82f6', color: '#fff', border: 'none', borderRadius: '100px', cursor: 'pointer', boxShadow: '0 10px 30px rgba(59, 130, 246, 0.4)' }}>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 2000,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "#fff",
+            color: "#000",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "80px",
+              marginBottom: "20px",
+              animation: "float 3s ease-in-out infinite",
+            }}
+          >
+            🦋
+          </div>
+          <h1
+            style={{
+              fontSize: "18px",
+              fontWeight: "900",
+              marginBottom: "40px",
+              letterSpacing: "0.2em",
+            }}
+          >
+            READY TO RELEASE
+          </h1>
+          <button
+            onClick={startAR}
+            style={{
+              padding: "20px 60px",
+              fontSize: "14px",
+              fontWeight: "900",
+              backgroundColor: "#3b82f6",
+              color: "#fff",
+              border: "none",
+              borderRadius: "100px",
+              cursor: "pointer",
+              boxShadow: "0 10px 30px rgba(59, 130, 246, 0.4)",
+            }}
+          >
             {status === "loading" ? "INITIALIZING..." : "空間に解き放つ"}
           </button>
         </div>
       )}
 
-      <div ref={arContainerRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }} />
+      <div
+        ref={arContainerRef}
+        style={{
+          width: "100%",
+          height: "100%",
+          position: "absolute",
+          top: 0,
+          left: 0,
+        }}
+      />
 
       {/* 写真撮影UI */}
       {status === "started" && !isExiting && (
         <>
-          {/* シャッターボタン */}
-          <div style={{ position: 'absolute', bottom: '40px', left: 0, right: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '30px', zIndex: 1000 }}>
-            <button 
+          <div
+            style={{
+              position: "absolute",
+              bottom: "40px",
+              left: 0,
+              right: 0,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "30px",
+              zIndex: 1000,
+            }}
+          >
+            <button
               onClick={takePhoto}
               disabled={isCapturing}
-              style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#fff', border: '6px solid rgba(59, 130, 246, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', transition: 'all 0.2s' }}
-              className={isCapturing ? 'scale-90 opacity-50' : 'active:scale-95'}
+              style={{
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
+                backgroundColor: "#fff",
+                border: "6px solid rgba(59, 130, 246, 0.5)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
+                transition: "all 0.2s",
+              }}
+              className={
+                isCapturing ? "scale-90 opacity-50" : "active:scale-95"
+              }
             >
-              <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: isCapturing ? '#3b82f6' : '#fff', border: '2px solid #eee' }}></div>
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "50%",
+                  backgroundColor: isCapturing ? "#3b82f6" : "#fff",
+                  border: "2px solid #eee",
+                }}
+              ></div>
             </button>
           </div>
-          
-          <div style={{ position: 'absolute', top: '30px', left: '30px', zIndex: 1000 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'rgba(0,0,0,0.5)', padding: '8px 15px', borderRadius: '15px', backdropFilter: 'blur(10px)' }}>
-               <Sparkles size={16} className="text-blue-400" />
-               <span style={{ color: '#fff', fontSize: '11px', fontWeight: '900', letterSpacing: '0.1em' }}>PHOTO MODE</span>
+
+          <div
+            style={{
+              position: "absolute",
+              top: "30px",
+              left: "30px",
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                backgroundColor: "rgba(0,0,0,0.5)",
+                padding: "8px 15px",
+                borderRadius: "15px",
+                backdropFilter: "blur(10px)",
+              }}
+            >
+              <Sparkles size={16} className="text-blue-400" />
+              <span
+                style={{
+                  color: "#fff",
+                  fontSize: "11px",
+                  fontWeight: "900",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                PHOTO MODE
+              </span>
             </div>
           </div>
         </>
@@ -218,17 +354,53 @@ export default function ReleasePage() {
 
       {/* 撮影時のフラッシュ演出 */}
       {isCapturing && (
-        <div style={{ position: 'absolute', inset: 0, backgroundColor: '#fff', zIndex: 2000, animation: 'flash 0.5s forwards' }}></div>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundColor: "#fff",
+            zIndex: 2000,
+            animation: "flash 0.5s forwards",
+          }}
+        ></div>
       )}
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
         @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
         .spinner { width: 30px; height: 30px; border: 3px solid #eee; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-      `}} />
+      `,
+        }}
+      />
 
-      <button onClick={() => { setIsExiting(true); cleanupAR(); setTimeout(() => window.location.href='/', 300); }} style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 3000, width: '44px', height: '44px', borderRadius: '15px', backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', color: '#000', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+      <button
+        onClick={() => {
+          setIsExiting(true);
+          cleanupAR();
+          setTimeout(() => (window.location.href = "/"), 300);
+        }}
+        style={{
+          position: "absolute",
+          top: "20px",
+          right: "20px",
+          zIndex: 3000,
+          width: "44px",
+          height: "44px",
+          borderRadius: "15px",
+          backgroundColor: "rgba(255,255,255,0.8)",
+          backdropFilter: "blur(10px)",
+          color: "#000",
+          border: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        ✕
+      </button>
     </div>
   );
 }
