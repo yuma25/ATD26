@@ -26,8 +26,33 @@ export const useHome = () => {
           BadgeService.getAllBadges(),
           BadgeService.getAcquiredBadgeIds(user.id)
         ]);
-        setBadges(allBadges);
-        setAcquiredBadgeIds(myAcquiredIds);
+
+        // 1. 5つのモック標本を作成（これらは獲得済みとする）
+        const mockBadges: Badge[] = Array.from({ length: 5 }).map((_, i) => ({
+          id: `painting-00${i + 1}`,
+          name: `Specimen ${String.fromCharCode(65 + i)}`,
+          description: `Historical Archive #${i + 1}`,
+          color: ['#3e2f28', '#2563eb', '#10b981', '#f59e0b', '#ef4444'][i],
+          model_url: '/butterfly.glb',
+          target_index: i
+        }));
+
+        // 2. 実在するバッジ（例：butterfly-001）を取得。なければモックの6番目を作成
+        const realBadge = allBadges.find(b => b.id === 'butterfly-001') || {
+          id: 'butterfly-001',
+          name: 'The Living Specimen',
+          description: 'A real discovery waiting in AR',
+          color: '#8b5cf6',
+          model_url: '/butterfly.glb',
+          target_index: 5
+        };
+
+        // 3. 5つのモック + 1つの実在バッジの計6つをセット
+        setBadges([...mockBadges, realBadge]);
+
+        // 4. 獲得済みリストの設定（モックの5つは必ず入れる）
+        const mockAcquiredIds = mockBadges.map(b => b.id);
+        setAcquiredBadgeIds([...mockAcquiredIds, ...myAcquiredIds]);
       }
     } catch (error) {
       console.error('Initialization error:', error);
@@ -54,7 +79,6 @@ export const useHome = () => {
 
   // データロード用
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
   }, [loadData]);
 
@@ -72,13 +96,6 @@ export const useHome = () => {
     }
   }, []);
 
-  const copyToClipboard = useCallback(() => {
-    if (!fullUserId) return;
-    navigator.clipboard.writeText(fullUserId);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [fullUserId]);
-
   const isAcquired = (id: string) => acquiredBadgeIds.includes(id);
 
   return {
@@ -89,7 +106,6 @@ export const useHome = () => {
     copied,
     cameraPermission,
     isAcquired,
-    copyToClipboard,
     requestCameraPermission,
     refresh: loadData
   };

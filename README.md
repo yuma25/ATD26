@@ -1,87 +1,79 @@
-# 🚀 Universal AI-Native Template
+# 🦋 Digital Specimen AR (Universal AR Badge System)
 
-このテンプレートは、**「AI（Gemini/ChatGPT/Cursor）と協調して、プロレベルの品質で爆速開発する」**ためのフルスタック・スターターキットです。
-
----
-
-## 🛠 0. 最初の準備 (Quick Start)
-
-1.  **リポジトリを作成**: このテンプレートから新しいリポジトリを作成します。
-2.  **デブコンテナを起動**:
-    - VS Code で開き、右下の **「Reopen in Container」** をクリック。
-    - **自動セットアップ**: 起動時に AI ログファイル (`DEV_LOG.md` 等) が自動生成されます。
-3.  **APIキーの登録**:
-    - [Google AI Studio](https://aistudio.google.com/app/apikey) で API キーを取得。
-    - GitHub の `Settings > Secrets > Actions` に `GEMINI_API_KEY` を登録（自動レビュー用）。
-4.  **AIログイン**:
-    - コンテナ内のターミナルで `gemini auth login` を実行。
+このプロジェクトは、**「現実の絵画」と「デジタルの3D標本」を融合させる、没入型のARバッジ収集システム**です。
+Next.js 16 (Turbopack) と Supabase を基盤とし、2026年現在のモダンなエンジニアリング手法で構築されています。
 
 ---
 
-## 📋 1. 開発フロー (AI-Native Workflow)
+## ✨ コア機能 (Key Features)
 
-このテンプレートでは、AI と対話しながら **「3ステップ」** で開発を進めます。
+### 📸 高精度 Image Tracking AR
+- **安定した起動**: モバイルブラウザ特有の初期化エラーを克服した堅牢なARエンジン（MindAR + A-Frame）。
+- **生命感ある演出**: リアルに羽ばたき、マーカーの周囲を優雅に旋回する 3D モデル。
+- **解析シークエンス**: 絵を一定時間捉え続けるとゲージが溜まる、ゲーム性の高い獲得フロー。
 
-### STEP 1: アイデアを設計図にする
+### 🆔 スマートなユーザー識別 & 保存
+- **匿名 ID システム**: ユーザー登録不要でスマホごとに固有ID（UUID）を発行。
+- **データの永続化**: 獲得したバッジは Supabase に永久保存され、リロードしても維持されます。
+- **一回限りの獲得制御**: 獲得済みのユーザーには解析バーを表示せず、即座に鑑賞モードへ移行。
 
-- **使うもの**: `docs/PROMPTS/01_IDEA_TO_DESIGN.md`
-- **手順**: プロンプトを AI に貼り付け、アイデアを伝えます。AI が質問を投げかけ、設計を深掘りします。
-- **成果物**: `docs/DESIGN/` 内に要件定義、UXフロー、データ設計が生成されます。
-
-### STEP 2: 設計をタスク(Issue)に分解する
-
-- **使うもの**: `docs/PROMPTS/02_DESIGN_TO_ISSUES.md`
-- **手順**: STEP 1 の設計図を AI に読み込ませます。
-- **成果物**: `docs/ISSUES/` に、実装順序を考慮した最小単位のタスクリストが生成されます。
-
-### STEP 3: 実装と自動レビュー
-
-- **使うもの**: `docs/PROMPTS/03_IMPLEMENTATION_GUIDE.md`
-- **手順**: AI (Cursor/Gemini等) に Issue を実装させ、`git push` します。
-- **成果物**: **AI (Gemini) が PR に自動で現れ、日本語でコードレビューを投稿します。**
+### 🎨 Apple スタイルの洗練された UI
+- **スマホ最適化**: 右上の固定アクションボタン、大きなタップ領域、直感的な進捗表示。
+- **透明感あるデザイン**: ホワイトスペースを贅沢に使った、クリーンでミニマルな美術館スタイル。
 
 ---
 
-## 🏗 2. プロジェクト構造 (Architecture)
+## 🛠 技術スタック (Technical Stack)
 
-```text
-.
-├── app/                # フロントエンド (Next.js App Router)
-├── server/             # バックエンド・AIロジック (RAG/Agents)
-│   ├── agents/         # 自律型エージェント (Router, Grader)
-│   ├── components/     # AIコンポーネント (Retriever, Reranker)
-│   └── services/       # ビジネスロジック・RAGパイプライン
-├── db/                 # データベース関連 (Schema, Seeds)
-├── docs/               # AI と協調するための最重要ドキュメント
-│   ├── PROMPTS/        # 01〜03の「AI共創プロンプト」
-│   ├── DESIGN/         # AI生成の設計図の保存先
-│   ├── ISSUES/         # AI生成のタスクリストの保存先
-│   ├── PR/             # AI生成のプルリク下書きの保存先
-│   └── AI_INSTRUCTIONS.md # プロジェクトの「憲法」(AI絶対遵守ルール)
-├── scripts/            # 自動レビュー等の自動化スクリプト
-├── DEV_LOG.md          # [Local] AIが自律管理する進捗ログ (Git非表示)
-├── TECH_NOTES.md       # [Local] AIが自律管理する技術知識 (Git非表示)
-├── GEMINI.md           # [Local] AI自身の動作命令・OS (Git非表示)
-└── Makefile            # プロ仕様のセットアップコマンド集
+- **Frontend**: Next.js 16 (App Router), Tailwind CSS, Framer Motion
+- **3D/AR**: A-Frame, MindAR.js, React Three Fiber (Home)
+- **Backend**: Supabase (Auth: Anonymous, Database: PostgreSQL)
+- **Tooling**: TypeScript, Prettier, ESLint, pnpm
+
+---
+
+## 🚀 クイックスタート (Quick Start)
+
+### 1. 環境構築
+```bash
+# 依存関係のインストール
+pnpm install
+
+# 開発サーバーの起動
+pnpm dev
 ```
 
----
-
-## 🧠 3. AI 自律管理システム
-
-このテンプレートには、AI が **「自分で自分の記憶を管理する」** 仕組みが組み込まれています。
-
-- **自己紹介不要**: AI は起動時に `DEV_LOG.md` を読み込み、前回の続きから会話を始めます。
-- **知識の蓄積**: 開発中に学んだ技術や設計判断は、AI が `TECH_NOTES.md` に自律的に記録します。
-- **日本語徹底**: すべての回答、コミット、PR、ログは **日本語** で統一されます。
+### 2. バックエンド設定 (Supabase)
+1. Supabase でプロジェクトを作成。
+2. `docs/DESIGN/DATABASE_SCHEMA.md` の SQL を SQL Editor で実行。
+3. `Authentication > Providers` で **Anonymous Sign-ins** を ON に設定。
+4. `.env.local` に API キーを設定し、サーバーを再起動。
 
 ---
 
-## 🚀 4. 将来の拡張 (CI/CD)
+## 🎨 標本（バッジ）を増やす方法
 
-- **自動品質チェック**: `.github/workflows/ci.yml` により、プッシュ時に DB 連携テストまで自動実行。
-- **自動デプロイ**: デプロイ先が決まれば、AI に依頼して `deploy.yml` を作成するだけで CD 環境が完成します。
+このシステムは「ノーコード拡張」に対応しています。
+1. **マーカーの追加**: `public/targets.mind` に新しい絵画の学習データを追加。
+2. **モデルの追加**: `public/` に新しい `.glb` モデルを配置。
+3. **データ登録**: Supabase の `badges` テーブルに新しい行（名前、ID、ターゲット番号等）を追加。
+**これだけで、アプリに新しいコレクションが出現します。**
 
 ---
 
-**Happy AI-Driven Developing!** 🚀
+## 📂 プロジェクト構造 (Architecture)
+
+- `app/`: View 層（Next.js ページ構成）
+- `hooks/`: Logic 層（AR制御、状態管理、データ取得）
+- `backend/`: Infrastructure 層（Supabase 通信、型定義）
+- `components/`: UI 部品（再利用可能なコンポーネント）
+- `public/`: 静的アセット（3Dモデル、ARマーカーデータ）
+
+---
+
+## 📜 ライセンス
+MIT License - 自由に使用・拡張が可能です。
+
+---
+
+**Developed with 💙 for the Next Generation of AR Experiences.**

@@ -41,8 +41,8 @@ export const signInAnonymously = async () => {
 
     console.log("New anonymous session created:", data.user?.id);
     return data.user;
-  } catch (e) {
-    console.error("Auth Error:", e);
+  } catch (error) {
+    console.error("Auth Error:", error);
     return null;
   }
 };

@@ -1,15 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
-  title: "Immersive AR Badge",
-  description: "AR & 3D Badge Collection Experience",
+  title: "ATD26_SCIENCE-ART",
+  description: "Journal of AR & 3D Specimens",
 };
 
-// モバイルAR向けにビューポートを固定
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -26,10 +22,9 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <head>
-        {/* A-Frameのエラーを軽減するための設定 */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
-      <body className={inter.className}>{children}</body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

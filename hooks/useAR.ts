@@ -48,7 +48,7 @@ export const useAR = () => {
     acquiredRef.current = true;
     acquiredBadgeIdsRef.current.push(badgeId);
     setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    // 自動で消えるタイマーを削除
 
     const userRes = await supabase?.auth.getUser();
     if (userRes?.data.user) {

@@ -148,34 +148,47 @@ export default function ARPage() {
               style={{
                 pointerEvents: "auto",
                 cursor: "pointer",
-                padding: "30px 60px",
+                padding: "40px",
                 background: "#fff",
-                borderRadius: "30px",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.1)",
-                border: "1px solid #eee",
-                textAlign: "center",
-                animation: "pop 0.5s forwards",
+                border: "1px solid #000",
+                boxShadow: "20px 20px 0px rgba(0,0,0,0.1)",
+                textAlign: "left",
+                animation: "label-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
+                width: "85vw",
+                maxWidth: "400px",
+                position: "relative",
+                overflow: "hidden"
               }}
             >
-              <h2
-                style={{
-                  color: "#3b82f6",
-                  fontSize: "36px",
-                  margin: 0,
-                  fontWeight: "900",
-                }}
-              >
-                GET!
-              </h2>
-              <p
-                style={{
-                  color: "#64748b",
-                  fontSize: "14px",
-                  marginTop: "10px",
-                }}
-              >
-                {activeBadge?.name} を復元しました
-              </p>
+              <div style={{ position: "absolute", top: 10, right: 15, fontSize: "10px", opacity: 0.3, fontFamily: "monospace" }}>
+                REG-ID: {activeBadge?.id.slice(0,8)}
+              </div>
+              
+              <div style={{ borderBottom: "2px solid #000", paddingBottom: "10px", marginBottom: "20px" }}>
+                <p style={{ margin: 0, fontSize: "10px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.2em", opacity: 0.5 }}>
+                  Archive Entry Confirmed
+                </p>
+                <h2 style={{ margin: "5px 0 0", fontSize: "32px", fontWeight: "900", fontFamily: "serif", italic: "true" }}>
+                  {activeBadge?.name}
+                </h2>
+              </div>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "8px", textTransform: "uppercase", fontWeight: "bold", opacity: 0.4 }}>Classification</label>
+                  <p style={{ margin: 0, fontSize: "12px", fontFamily: "monospace" }}>Digital Specimen</p>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "8px", textTransform: "uppercase", fontWeight: "bold", opacity: 0.4 }}>Status</label>
+                  <p style={{ margin: 0, fontSize: "12px", fontFamily: "monospace", color: "#3b82f6" }}>PRESERVED</p>
+                </div>
+              </div>
+
+              <div style={{ marginTop: "30px", borderTop: "1px dashed #ccc", paddingTop: "20px", fontSize: "10px", fontFamily: "monospace", lineHeight: "1.6", opacity: 0.6 }}>
+                DATE: {new Date().toLocaleDateString()}<br/>
+                TYPE: AR-RECONSTRUCTION<br/>
+                LOCATION: REMOTE_NODE
+              </div>
             </div>
           )}
         </div>
@@ -184,11 +197,14 @@ export default function ARPage() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        @keyframes pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes label-reveal { 
+          from { transform: translateY(50px) rotate(-2deg); opacity: 0; } 
+          to { transform: translateY(0) rotate(0); opacity: 1; } 
+        }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
-        .spinner { width: 30px; height: 30px; border: 3px solid #eee; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .spinner { width: 30px; height: 30px; border: 1px solid #eee; border-top: 1px solid #000; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        video { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; object-fit: cover !important; z-index: -1 !important; filter: brightness(1.2) contrast(1.1) !important; }
+        video { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; object-fit: cover !important; z-index: -1 !important; filter: grayscale(0.2) brightness(1.1) contrast(1.1) !important; }
       `,
         }}
       />
