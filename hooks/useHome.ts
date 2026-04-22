@@ -15,7 +15,7 @@ export const useHome = () => {
   >("prompt");
 
   /**
-   * カメラの先行許可リクエスト
+   * カメラの許可を要求する (ユーザーのボタン操作から呼び出される)
    */
   const requestCameraPermission = useCallback(async () => {
     try {
@@ -44,32 +44,27 @@ export const useHome = () => {
           BadgeService.getAcquiredBadgeIds(user.id),
         ]);
 
-        // 1. 5つのモック標本（獲得済み）
-        const mockBadges: Badge[] = Array.from({ length: 5 }).map((_, i) => ({
-          id: `mock-specimen-00${i + 1}`,
-          name: `Specimen ${String.fromCharCode(65 + i)}`,
-          description: `Historical Archive Record`,
-          color: ["#3e2f28", "#2563eb", "#10b981", "#f59e0b", "#ef4444"][i],
-          model_url: "/butterfly.glb",
-          target_index: 999,
-        }));
+        // 1. Supabase から取得した実データ（最大5つ）
+        const realBadges = allBadges.slice(0, 5);
 
-        // 2. 6番目の枠（実データがあれば採用、なければ未知の枠として表示）
-        const realBadge = allBadges[0] || {
-          id: "unknown-specimen-006",
-          name: "Unknown Specimen",
-          description: "Yet to be discovered in the wild.",
-          color: "#8b5cf6",
-          model_url: "/butterfly.glb",
-          target_index: 0,
-        };
+        // 2. 6番目の枠、または実データが足りない場合の埋め合わせ
+        const slots: Badge[] = [...realBadges];
+        while (slots.length < 6) {
+          const index = slots.length;
+          slots.push({
+            id: `unknown-specimen-${index}`,
+            name: "Unknown Specimen",
+            description: "Yet to be discovered in the wild.",
+            color: "#8b5cf6",
+            model_url: "/butterfly.glb",
+            target_index: index,
+          });
+        }
 
-        const displayBadges = [...mockBadges, realBadge];
-        setBadges(displayBadges);
+        setBadges(slots);
 
-        // 3. 獲得済みリストの設定
-        const mockIds = mockBadges.map((b) => b.id);
-        setAcquiredBadgeIds([...mockIds, ...myAcquiredIds]);
+        // 3. 獲得済みリストの設定（実データのみ反映）
+        setAcquiredBadgeIds(myAcquiredIds);
       }
     } catch (error) {
       console.error("❌ Roadmap Load Error:", error);
@@ -78,13 +73,10 @@ export const useHome = () => {
     }
   }, []);
 
-  // データロードとカメラ要求用
+  // データロード用 (自動的なカメラ要求は削除)
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-
-    // 💡 サイトアクセス時にカメラアクセスを要求
-    requestCameraPermission();
 
     window.addEventListener("focus", loadData);
     const handleVisibilityChange = () => {
@@ -96,12 +88,12 @@ export const useHome = () => {
       window.removeEventListener("focus", loadData);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [loadData, requestCameraPermission]);
+  }, [loadData]);
 
-  // パーミッション監視用
+  // パーミッション監視用 (一度許可されれば granted を維持)
   useEffect(() => {
     const checkPermission = async () => {
-      if (navigator.permissions && navigator.permissions.query) {
+      if (typeof window !== "undefined" && navigator.permissions?.query) {
         try {
           const result = await navigator.permissions.query({
             name: "camera" as PermissionName,

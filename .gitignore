@@ -49,7 +49,7 @@ dist/
 
 # Gatsby files
 .cache/
-public/
+# public/ (Next.js ではアセット格納用に使用するため、無視対象から外します)
 
 # vue-cli build output
 dist/

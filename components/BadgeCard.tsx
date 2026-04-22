@@ -8,17 +8,16 @@ import {
   Box,
   Wind,
   Bug,
-  Leaf,
-  Feather,
-  Flower2,
   CircleDot,
   LucideIcon,
   MapPin,
+  Waves,
+  Sword,
 } from "lucide-react";
 import { Badge } from "../backend/types";
 
 // ターゲットインデックスに基づいたアイコンの割り当て
-const IconList: LucideIcon[] = [Bug, Flower2, Leaf, Feather, CircleDot, MapPin];
+const IconList: LucideIcon[] = [Bug, Waves, CircleDot, Sword, Wind, MapPin];
 
 interface BadgeCardProps {
   badge: Badge;
