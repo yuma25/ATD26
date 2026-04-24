@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
 import { BadgeService } from "../../../backend/services/badgeService";
-import { Logger } from "../../../server/lib/logger";
 
-/**
- * すべての標本（バッジ）を取得する API
- */
 export async function GET() {
   try {
+    // 💡 サーバーサイドでは SUPABASE_SERVICE_ROLE_KEY が使えるため、
+    // RLS をバイパスして確実に全データを取得できる
     const badges = await BadgeService.getAllBadges();
     return NextResponse.json(badges);
   } catch (error) {
-    Logger.error("API_BADGES_GET_FAILED", error);
-    return NextResponse.json(
-      { error: "Failed to fetch badges" },
-      { status: 500 },
-    );
+    console.error("API_BADGES_GET_ERROR:", error);
+    return NextResponse.json([], { status: 500 });
   }
 }

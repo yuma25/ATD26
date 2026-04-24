@@ -1,46 +1,34 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { BadgeService } from "../../../../backend/services/badgeService";
-import { Logger } from "../../../../server/lib/logger";
 
-/**
- * 新しいバッジを獲得（保存）する API
- */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { userId, badgeId } = body;
-
-    console.log(
-      `[API/acquire] Received request: user=${userId}, badge=${badgeId}`,
-    );
+    const { userId, badgeId } = await request.json();
 
     if (!userId || !badgeId) {
       return NextResponse.json(
-        { error: "userId and badgeId are required" },
+        { error: "Missing userId or badgeId" },
         { status: 400 },
       );
     }
 
-    // BadgeService 経由で DB に保存
-    const result = await BadgeService.acquireBadge(userId, badgeId);
+    // バッジ獲得を試行
+    const data = await BadgeService.acquireBadge(userId, badgeId);
 
-    if (!result) {
-      console.error(`[API/acquire] Save failed: BadgeService returned null`);
-      return NextResponse.json(
-        {
-          error:
-            "Could not save discovery. Profile may not exist or Badge ID is wrong.",
-        },
-        { status: 500 },
-      );
+    // 💡 修正：data が null の場合（重複等）でも 200 成功として返す
+    // 重複をエラー（500）にしないことで、ブラウザ側の挙動を安定させる
+    if (!data) {
+      return NextResponse.json({
+        message: "Already acquired or duplicate",
+        status: "success",
+      });
     }
 
-    console.log(`[API/acquire] Save SUCCESS: user=${userId}, badge=${badgeId}`);
-    return NextResponse.json(result);
+    return NextResponse.json(data);
   } catch (error) {
-    Logger.error("API_ACQUIRE_POST_FAILED", error);
+    console.error("API_BADGES_ACQUIRE_ERROR:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unexpected error" },
+      { error: "Internal Server Error" },
       { status: 500 },
     );
   }

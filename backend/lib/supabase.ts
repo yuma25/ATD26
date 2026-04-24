@@ -18,36 +18,27 @@ export const supabaseAdmin = supabaseServiceKey
   : null;
 
 /**
- * ログイン状態を確認し、プロフィールを同期する
+ * ログイン状態を確認し、必要に応じて匿名サインインを行う
  */
 export const signInAnonymously = async () => {
   try {
+    // 1. まず現在のセッションを確認
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    let currentUser = user;
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (!currentUser) {
-      console.log("Starting new anonymous session...");
-      const { data, error } = await supabase.auth.signInAnonymously();
-      if (error) throw error;
-      currentUser = data.user;
+    if (session?.user) {
+      console.log("✅ Existing session found:", session.user.id);
+      return session.user;
     }
 
-    if (currentUser) {
-      // 💡 ブラウザから直接DBに書かず、APIルートを通じて同期する (RLS回避)
-      try {
-        await fetch("/api/profile/sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId: currentUser.id }),
-        });
-        console.log("✅ Identity sync request sent.");
-      } catch {
-        console.warn("⚠️ Identity sync call failed, but user session exists.");
-      }
-    }
-    return currentUser;
+    // 2. セッションがない場合のみ、新しく匿名サインイン
+    console.log("🗝 Starting new anonymous session...");
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) throw error;
+
+    console.log("✅ New anonymous user created:", data.user?.id);
+    return data.user;
   } catch (error) {
     console.error("❌ Auth failure:", error);
     return null;

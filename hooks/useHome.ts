@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Badge } from "../backend/types";
 import { BadgeService } from "../backend/services/badgeService";
 import { signInAnonymously } from "../backend/lib/supabase";
@@ -8,14 +8,17 @@ import { signInAnonymously } from "../backend/lib/supabase";
 export const useHome = () => {
   const [badges, setBadges] = useState<Badge[]>([]);
   const [acquiredBadgeIds, setAcquiredBadgeIds] = useState<string[]>([]);
-  const [syncing, setSyncing] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [fullUserId, setFullUserId] = useState<string>("");
   const [cameraPermission, setCameraPermission] = useState<
     "prompt" | "granted" | "denied"
   >("prompt");
 
+  // 💡 修正：無限ループ防止のため、実行中の状態を Ref で管理
+  const isLoadingRef = useRef(false);
+
   /**
-   * カメラの許可を要求する (ユーザーのボタン操作から呼び出される)
+   * カメラの許可を要求する
    */
   const requestCameraPermission = useCallback(async () => {
     try {
@@ -34,7 +37,11 @@ export const useHome = () => {
    * 初期データのロード
    */
   const loadData = useCallback(async () => {
+    if (isLoadingRef.current) return;
+
+    isLoadingRef.current = true;
     setSyncing(true);
+
     try {
       const user = await signInAnonymously();
       if (user) {
@@ -44,36 +51,18 @@ export const useHome = () => {
           BadgeService.getAcquiredBadgeIds(user.id),
         ]);
 
-        // 1. Supabase から取得した実データ（最大5つ）
-        const realBadges = allBadges.slice(0, 5);
-
-        // 2. 6番目の枠、または実データが足りない場合の埋め合わせ
-        const slots: Badge[] = [...realBadges];
-        while (slots.length < 6) {
-          const index = slots.length;
-          slots.push({
-            id: `unknown-specimen-${index}`,
-            name: "Unknown Specimen",
-            description: "Yet to be discovered in the wild.",
-            color: "#8b5cf6",
-            model_url: "/butterfly.glb",
-            target_index: index,
-          });
-        }
-
-        setBadges(slots);
-
-        // 3. 獲得済みリストの設定（実データのみ反映）
+        setBadges(allBadges);
         setAcquiredBadgeIds(myAcquiredIds);
       }
     } catch (error) {
       console.error("❌ Roadmap Load Error:", error);
     } finally {
       setSyncing(false);
+      isLoadingRef.current = false;
     }
-  }, []);
+  }, []); // 💡 依存配列を空にしてループを完全に切る
 
-  // データロード用 (自動的なカメラ要求は削除)
+  // データロード用
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
@@ -90,7 +79,7 @@ export const useHome = () => {
     };
   }, [loadData]);
 
-  // パーミッション監視用 (一度許可されれば granted を維持)
+  // パーミッション監視用
   useEffect(() => {
     const checkPermission = async () => {
       if (typeof window !== "undefined" && navigator.permissions?.query) {

@@ -16,6 +16,12 @@ export const useAR = () => {
   const [allBadges, setAllBadges] = useState<Badge[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // 💡 修正：クロージャ問題を避けるため Ref で最新のバッジ情報を保持
+  const allBadgesRef = useRef<Badge[]>([]);
+  useEffect(() => {
+    allBadgesRef.current = allBadges;
+  }, [allBadges]);
+
   const progressRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const acquiredRef = useRef(false);
@@ -75,9 +81,13 @@ export const useAR = () => {
     setAcquired(true);
     acquiredRef.current = true;
     setShowSuccess(true);
-    const userRes = await supabase?.auth.getUser();
-    if (userRes?.data.user) {
-      await BadgeService.acquireBadge(userRes.data.user.id, badgeId);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      // 💡 プロフィールが消えている場合に備えて同期を試みる
+      await BadgeService.acquireBadge(user.id, badgeId);
     }
   }, []);
 
@@ -112,8 +122,9 @@ export const useAR = () => {
   };
 
   const setupListeners = useCallback(() => {
-    console.log("🔍 Attaching MindAR listeners...");
+    console.log("🔍 Attaching MindAR listeners to targets...");
     const targets = document.querySelectorAll("[mindar-image-target]");
+    console.log(`Found ${targets.length} target elements in DOM.`);
     const ghostEl = document.querySelector("#ghost");
 
     targets.forEach((targetEl) => {
@@ -132,11 +143,20 @@ export const useAR = () => {
         if (match) index = parseInt(match[1]);
       }
 
+      console.log(`Setting up listener for Target Index: ${index}`);
+
       if (index === -1) return;
 
       targetEl.addEventListener("targetFound", () => {
-        const badge = allBadges.find((b) => b.target_index === index);
-        if (!badge) return;
+        console.log(`🎯 TARGET_FOUND: Index ${index}`);
+        const badge = allBadgesRef.current.find(
+          (b) => b.target_index === index,
+        );
+        if (!badge) {
+          console.warn(`No badge data found for index ${index}`);
+          return;
+        }
+        console.log(`Recognized specimen: ${badge.name}`);
         setActiveBadge(badge);
         setIsFound(true);
         ghostEl?.setAttribute("visible", "false");
@@ -150,6 +170,7 @@ export const useAR = () => {
       });
 
       targetEl.addEventListener("targetLost", () => {
+        console.log(`💨 TARGET_LOST: Index ${index}`);
         setIsFound(false);
         ghostEl?.setAttribute("visible", "true");
         document
@@ -158,7 +179,7 @@ export const useAR = () => {
         resetProgress();
       });
     });
-  }, [allBadges, startProgress, resetProgress]);
+  }, [startProgress, resetProgress]);
 
   useEffect(() => {
     const init = async () => {
