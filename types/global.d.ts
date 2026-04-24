@@ -1,6 +1,11 @@
 import * as React from "react";
 
 declare global {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const AFRAME: any;
+  const THREE: any;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
   namespace JSX {
     interface IntrinsicElements extends AFrameElements, ModelViewerElements {}
   }

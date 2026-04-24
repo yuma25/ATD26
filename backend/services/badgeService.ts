@@ -39,16 +39,16 @@ export const BadgeService = {
   },
 
   /**
-   * ユーザーが獲得したバッジのID一覧を取得する
+   * ユーザーが獲得したバッジの情報を取得する（日時を含む）
    */
-  async getAcquiredBadgeIds(userId: string): Promise<string[]> {
-    // 💡 クライアントサイドでは API 経由
+  async getAcquiredBadges(
+    userId: string,
+  ): Promise<{ badge_id: string; acquired_at: string }[]> {
     if (typeof window !== "undefined") {
       try {
         const res = await fetch(`/api/badges/acquired?userId=${userId}`);
         if (!res.ok) throw new Error("Failed to fetch acquired badges");
-        const data = await res.json();
-        return data || [];
+        return await res.json();
       } catch (e) {
         console.error("[BadgeService/Client] Acquired API fetch failed:", e);
         return [];
@@ -58,7 +58,7 @@ export const BadgeService = {
     const client = supabaseAdmin || supabase;
     const { data, error } = await client
       .from("user_badges")
-      .select("badge_id")
+      .select("badge_id, acquired_at")
       .eq("user_id", userId);
 
     if (error) {
@@ -66,7 +66,15 @@ export const BadgeService = {
       return [];
     }
 
-    return (data || []).map((row) => row.badge_id);
+    return data || [];
+  },
+
+  /**
+   * ユーザーが獲得したバッジのID一覧のみを取得する（互換性のため）
+   */
+  async getAcquiredBadgeIds(userId: string): Promise<string[]> {
+    const data = await this.getAcquiredBadges(userId);
+    return data.map((row) => row.badge_id);
   },
 
   /**
@@ -76,7 +84,6 @@ export const BadgeService = {
     userId: string,
     badgeId: string,
   ): Promise<UserBadge | null> {
-    // 💡 クライアントサイドでは API 経由で POST
     if (typeof window !== "undefined") {
       try {
         const res = await fetch("/api/badges/acquire", {
@@ -92,10 +99,8 @@ export const BadgeService = {
       }
     }
 
-    // 💡 サーバーサイド実行（管理者権限で実行）
     const client = supabaseAdmin || supabase;
 
-    // プロフィールの存在を確認し、なければ作成（自己修復）
     const { data: profile } = await client
       .from("profiles")
       .select("id")

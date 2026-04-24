@@ -1,9 +1,11 @@
+/* eslint-disable */
 "use client";
 
 import { useEffect, useState, useRef } from "react";
 import { useAR } from "../../hooks/useAR";
 import { DiscoveryComplete } from "../../components/ar/DiscoveryComplete";
 import { CloseButton } from "../../components/layout/CloseButton";
+import { getSpecimenSettings } from "../../backend/lib/constants";
 
 export default function ARPage() {
   const {
@@ -85,28 +87,24 @@ export default function ARPage() {
 
       if (existingScene) {
         try {
-          const sceneEl = existingScene as AFrameScene;
+          const sceneEl = existingScene as any;
           if (sceneEl.systems?.["mindar-image-system"])
             sceneEl.systems["mindar-image-system"].stop();
-        } catch {
-          // ignore
-        }
+        } catch (e) {}
         arContainerRef.current.innerHTML = "";
       }
 
       lastInjectedDataRef.current = currentDataHash;
-
       const uniqueModels = Array.from(
         new Set(allBadges.map((b) => b.model_url)),
       );
       const v = Date.now();
 
-      // 💡 修正：renderer 設定を軽量化し、フィルター設定でジッター（震え）を抑制しつつ高速化
       const sceneHTML = `
         <a-scene 
-          mindar-image="imageTargetSrc: /targets.mind?v=${v}; autoStart: false; uiLoading: no; uiScanning: no; maxTrack: 1; filterMinCF: 0.0001; filterBeta: 0.001;" 
+          mindar-image="imageTargetSrc: /targets.mind?v=${v}; autoStart: false; uiLoading: no; uiScanning: no; maxTrack: 1; filterMinCF: 0.001; filterBeta: 10; missTolerance: 0;" 
           color-space="sRGB" 
-          renderer="colorManagement: true, physicallyCorrectLights: false, exposure: 1.2, alpha: true, antialias: false" 
+          renderer="colorManagement: true, physicallyCorrectLights: false, exposure: 1.2, alpha: true, antialias: true" 
           vr-mode-ui="enabled: false" 
           device-orientation-permission-ui="enabled: false" 
           loading-screen="enabled: false" 
@@ -121,21 +119,21 @@ export default function ARPage() {
           ${allBadges
             .map((badge) => {
               const modelIndex = uniqueModels.indexOf(badge.model_url);
-              let scaleValue = 0.05;
-              if (badge.name === "Leviathan") scaleValue = 0.01;
-              else if (badge.name === "Moon Jelly") scaleValue = 0.015;
-              else if (badge.name === "Antique Sword") scaleValue = 0.005;
-              else if (badge.name === "Great Wave") scaleValue = 0.03;
-              else if (badge.name === "Common Blue") scaleValue = 1.0;
-
-              const s = `${scaleValue} ${scaleValue} ${scaleValue}`;
+              const settings = getSpecimenSettings(badge.name);
 
               return `
               <a-entity mindar-image-target="targetIndex: ${badge.target_index}">
                 <a-entity id="model-container-${badge.target_index}" visible="false">
-                  <a-entity animation="property: rotation; to: 0 0 360; dur: 20000; easing: linear; loop: true">
-                    <a-entity position="0 0 0">
-                      <a-gltf-model src="#model-${modelIndex}" scale="${s}" animation-mixer="clip: *; loop: repeat; timeScale: 1.0"></a-gltf-model>
+                  <a-entity animation="${settings.outerAnimation}">
+                    <a-entity animation="${settings.innerAnimation}">
+                      <a-gltf-model 
+                        id="model-el-${badge.target_index}"
+                        src="#model-${modelIndex}" 
+                        scale="${settings.scale}" 
+                        animation-mixer="clip: *; loop: repeat; timeScale: 1.2"
+                        data-min-scale="${settings.minScale}"
+                        data-max-scale="${settings.maxScale}"
+                      ></a-gltf-model>
                     </a-entity>
                   </a-entity>
                 </a-entity>
@@ -147,15 +145,50 @@ export default function ARPage() {
       `;
 
       arContainerRef.current.innerHTML = sceneHTML;
-
       const sceneEl = arContainerRef.current.querySelector(
         "a-scene",
       ) as AFrameScene;
+
+      const setupAutoScaling = () => {
+        const aframe = (window as any).AFRAME;
+        if (!aframe || aframe.components["auto-scale"]) return;
+
+        aframe.registerComponent("auto-scale", {
+          init: function () {
+            (this as any).cameraEl = document.querySelector("a-camera");
+            (this as any).cameraPos = new (window as any).THREE.Vector3();
+            (this as any).targetPos = new (window as any).THREE.Vector3();
+          },
+          tick: function () {
+            const self = this as any;
+            if (!self.cameraEl) return;
+
+            self.cameraEl.object3D.getWorldPosition(self.cameraPos);
+            self.el.object3D.getWorldPosition(self.targetPos);
+            const distance = self.cameraPos.distanceTo(self.targetPos);
+
+            const minS = parseFloat(self.el.getAttribute("data-min-scale"));
+            const maxS = parseFloat(self.el.getAttribute("data-max-scale"));
+
+            let factor = (distance - 0.5) / 2.5;
+            factor = Math.min(Math.max(factor, 0), 1);
+
+            const currentS = minS + (maxS - minS) * factor;
+            self.el.object3D.scale.set(currentS, currentS, currentS);
+          },
+        });
+
+        document.querySelectorAll("a-gltf-model").forEach((el) => {
+          el.setAttribute("auto-scale", "");
+        });
+      };
+
       const boot = () => {
         if (sceneEl.systems?.["mindar-image-system"]) {
           console.log("🏁 Starting MindAR (Optimized)...");
           sceneEl.systems["mindar-image-system"].start();
           setupListeners();
+          setupAutoScaling();
           setTimeout(() => window.dispatchEvent(new Event("resize")), 500);
         } else {
           setTimeout(boot, 200);
@@ -224,6 +257,21 @@ export default function ARPage() {
                 justifyContent: "center",
               }}
             >
+              {isFound && activeBadge && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "10px",
+                    right: "10px",
+                    padding: "4px 8px",
+                    background: "rgba(0,0,0,0.5)",
+                    color: "#fff",
+                    fontSize: "9px",
+                  }}
+                >
+                  INDEX {activeBadge.target_index}: {activeBadge.name}
+                </div>
+              )}
               {!isFound && !showSuccess && (
                 <div
                   style={{

@@ -4,20 +4,19 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { CloseButton } from "../../components/layout/CloseButton";
+import { getSpecimenSettings } from "../../backend/lib/constants";
 
 /**
  * A-Frame シーン要素のためのインターフェース
  */
 interface ASceneElement extends HTMLElement {
   renderer: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    render: (scene: any, camera: any) => void;
+    render: (scene: unknown, camera: unknown) => void;
   };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  camera: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  object3D: any;
+  camera: unknown;
+  object3D: unknown;
   canvas: HTMLCanvasElement;
+  hasLoaded?: boolean;
 }
 
 function ReleaseContent() {
@@ -32,10 +31,25 @@ function ReleaseContent() {
   const [isCapturing, setIsCapturing] = useState(false);
 
   const arContainerRef = useRef<HTMLDivElement>(null);
+  const lastInjectedRef = useRef("");
 
   const cleanupAR = () => {
+    console.log("🧹 Cleaning up Release AR...");
     const sceneEl = document.querySelector("a-scene");
-    if (sceneEl) sceneEl.remove();
+    if (sceneEl) {
+      const scene = sceneEl as unknown as {
+        systems?: { "mindar-image-system"?: { stop: () => void } };
+      };
+      if (scene.systems?.["mindar-image-system"]) {
+        try {
+          scene.systems["mindar-image-system"].stop();
+        } catch {
+          // ignore
+        }
+      }
+      sceneEl.remove();
+    }
+
     document.querySelectorAll("video").forEach((v) => {
       const s = v.srcObject as MediaStream | null;
       if (s) s.getTracks().forEach((t) => t.stop());
@@ -59,9 +73,9 @@ function ReleaseContent() {
       video.style.height = "100vh";
       video.style.objectFit = "cover";
       video.style.zIndex = "-1";
-      video.style.filter = "brightness(1.2)";
+      video.style.filter = "brightness(1.1)";
       document.body.appendChild(video);
-      video.play();
+      await video.play();
     } catch (e) {
       console.error("Camera failed", e);
     }
@@ -75,7 +89,7 @@ function ReleaseContent() {
           if (document.querySelector(`script[src="${src}"]`)) return res(true);
           const s = document.createElement("script");
           s.src = src;
-          s.onload = res;
+          s.onload = () => res(true);
           s.onerror = rej;
           document.head.appendChild(s);
         });
@@ -85,8 +99,9 @@ function ReleaseContent() {
         "https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js",
       );
 
-      setStatus("started");
-    } catch {
+      setStatus("ready");
+    } catch (e) {
+      console.error("Script load failed", e);
       setStatus("init");
     }
   };
@@ -98,9 +113,6 @@ function ReleaseContent() {
     return () => cleanupAR();
   }, []);
 
-  /**
-   * 写真を撮影して保存する
-   */
   const takePhoto = async () => {
     if (isCapturing) return;
     setIsCapturing(true);
@@ -108,64 +120,44 @@ function ReleaseContent() {
     try {
       const sceneEl = document.querySelector("a-scene") as ASceneElement | null;
       const videoEl = document.querySelector("video");
-      if (!sceneEl || !videoEl) {
-        console.error("Required elements not found");
-        return;
-      }
+      if (!sceneEl || !videoEl) return;
 
-      const renderer = sceneEl.renderer;
-      const camera = sceneEl.camera;
-      if (renderer && camera) {
-        renderer.render(sceneEl.object3D, camera);
+      if (sceneEl.renderer && sceneEl.camera) {
+        sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       }
 
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      const width = videoEl.videoWidth;
-      const height = videoEl.videoHeight;
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = videoEl.videoWidth;
+      canvas.height = videoEl.videoHeight;
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
 
-      ctx.drawImage(videoEl, 0, 0, width, height);
-
-      const threeCanvas = sceneEl.canvas;
-      if (threeCanvas) {
-        ctx.drawImage(threeCanvas, 0, 0, width, height);
+      if (sceneEl.canvas) {
+        ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
       }
 
-      const dataUrl = canvas.toDataURL("image/png", 1.0);
       const link = document.createElement("a");
-      const timestamp = new Date()
-        .toISOString()
-        .replace(/[:.]/g, "-")
-        .slice(0, 19);
-      link.download = `Specimen_${name}_${timestamp}.png`;
-      link.href = dataUrl;
-
-      document.body.appendChild(link);
+      link.download = `Specimen_${name}_${Date.now()}.png`;
+      link.href = canvas.toDataURL("image/png");
       link.click();
-      document.body.removeChild(link);
     } catch (e) {
       console.error("Capture failed", e);
-      alert("写真の保存に失敗しました。カメラの権限等を確認してください。");
     } finally {
       setTimeout(() => setIsCapturing(false), 800);
     }
   };
 
   useEffect(() => {
-    if (status === "started" && arContainerRef.current) {
-      // 💡 モデルごとに個別スケールを適用 (AR 画面と同じ設定)
-      let scaleValue = 0.1;
-      if (name === "Leviathan") scaleValue = 0.01;
-      else if (name === "Moon Jelly") scaleValue = 0.015;
-      else if (name === "Antique Sword") scaleValue = 0.005;
-      else if (name === "Great Wave") scaleValue = 0.03;
-      else if (name === "Common Blue") scaleValue = 1.0;
-
-      const s = `${scaleValue} ${scaleValue} ${scaleValue}`;
+    const currentKey = `${modelUrl}:${name}`;
+    if (
+      status === "ready" &&
+      arContainerRef.current &&
+      lastInjectedRef.current !== currentKey
+    ) {
+      console.log("🛠 [Release] Injecting scene...");
+      const settings = getSpecimenSettings(name);
 
       arContainerRef.current.innerHTML = `
         <a-scene 
@@ -181,18 +173,30 @@ function ReleaseContent() {
           <a-light type="ambient" intensity="1.5"></a-light>
           <a-light type="directional" intensity="2.0" position="1 2 1"></a-light>
           
-          <a-entity position="0 1.6 -2">
-            <a-entity animation="property: rotation; to: 0 360 0; dur: 30000; easing: linear; loop: true">
-              <a-entity position="1.2 0 0" animation="property: position; to: 1.2 0.4 0.1; dur: 6000; easing: easeInOutSine; dir: alternate; loop: true">
-                <a-entity animation="property: rotation; from: -10 90 -10; to: 10 90 10; dur: 8000; easing: easeInOutSine; dir: alternate; loop: true">
-                  <a-gltf-model src="#m" scale="${s}" animation-mixer="clip: *; loop: repeat; timeScale: 1.0"></a-gltf-model>
-                </a-entity>
+          <a-entity position="0 1.6 -2.5">
+            <a-entity animation="${settings.outerAnimation}">
+              <a-entity animation="${settings.innerAnimation}">
+                <a-gltf-model src="#m" scale="${settings.scale}" animation-mixer="clip: *; loop: repeat; timeScale: 1.0"></a-gltf-model>
               </a-entity>
             </a-entity>
           </a-entity>
         </a-scene>
       `;
-      setupCameraBackground();
+
+      lastInjectedRef.current = currentKey;
+
+      const sceneEl = arContainerRef.current.querySelector(
+        "a-scene",
+      ) as ASceneElement;
+      const boot = () => {
+        console.log("🏁 [Release] AR Scene Loaded");
+        setupCameraBackground();
+        setStatus("started");
+        setTimeout(() => window.dispatchEvent(new Event("resize")), 300);
+      };
+
+      if (sceneEl.hasLoaded) boot();
+      else sceneEl.addEventListener("loaded", boot);
     }
   }, [status, modelUrl, name]);
 
@@ -228,7 +232,7 @@ function ReleaseContent() {
         </div>
       )}
 
-      {status === "loading" && (
+      {(status === "loading" || status === "ready") && (
         <div
           style={{
             position: "absolute",
@@ -252,7 +256,7 @@ function ReleaseContent() {
               opacity: 0.5,
             }}
           >
-            SYNCING VISION
+            SYNCHRONIZING ARCHIVE...
           </h1>
         </div>
       )}
@@ -313,7 +317,6 @@ function ReleaseContent() {
               ></div>
             </button>
           </div>
-
           <div
             style={{
               position: "absolute",
@@ -333,7 +336,7 @@ function ReleaseContent() {
                 backdropFilter: "blur(10px)",
               }}
             >
-              <Sparkles size={16} className="text-blue-400" />
+              <Sparkles size={16} className="text-blue-400" strokeWidth={1.5} />
               <span
                 style={{
                   color: "#fff",
@@ -364,14 +367,14 @@ function ReleaseContent() {
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
         @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
         .spinner { width: 30px; height: 30px; border: 1px solid #eee; border-top: 1px solid #3e2f28; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        video { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; object-fit: cover !important; z-index: -10 !important; display: block !important; }
+        canvas.a-canvas { background-color: transparent !important; }
       `,
         }}
       />
-
       <CloseButton
         onClick={() => {
           setIsExiting(true);

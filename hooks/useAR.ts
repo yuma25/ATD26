@@ -82,6 +82,11 @@ export const useAR = () => {
     acquiredRef.current = true;
     setShowSuccess(true);
 
+    // 💡 修正：獲得済みリストに即座に追加し、再認識時のゲージ表示を防ぐ
+    if (!acquiredBadgeIdsRef.current.includes(badgeId)) {
+      acquiredBadgeIdsRef.current.push(badgeId);
+    }
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -128,6 +133,15 @@ export const useAR = () => {
     const ghostEl = document.querySelector("#ghost");
 
     targets.forEach((targetEl) => {
+      // 💡 修正：要素をクローンせず、フラグを使って二重登録を防止する
+      // これにより MindAR エンジンとの紐付けを壊さずに多重登録を防ぐ
+      const el = targetEl as HTMLElement & { _listenerAttached?: boolean };
+      if (el._listenerAttached) {
+        console.log("⏭ Listener already attached, skipping.");
+        return;
+      }
+      el._listenerAttached = true;
+
       const attr = targetEl.getAttribute("mindar-image-target") as
         | string
         | MindARAttribute
@@ -135,10 +149,8 @@ export const useAR = () => {
       let index = -1;
 
       if (typeof attr === "object" && attr !== null) {
-        // A-Frame が既にオブジェクトとして解析している場合
         index = attr.targetIndex;
       } else if (typeof attr === "string") {
-        // まだ文字列として残っている場合
         const match = attr.match(/targetIndex:\s*(\d+)/);
         if (match) index = parseInt(match[1]);
       }
@@ -152,21 +164,25 @@ export const useAR = () => {
         const badge = allBadgesRef.current.find(
           (b) => b.target_index === index,
         );
-        if (!badge) {
-          console.warn(`No badge data found for index ${index}`);
-          return;
-        }
-        console.log(`Recognized specimen: ${badge.name}`);
+        if (!badge) return;
+
         setActiveBadge(badge);
         setIsFound(true);
         ghostEl?.setAttribute("visible", "false");
         document
           .querySelector(`#model-container-${index}`)
           ?.setAttribute("visible", "true");
+
         const alreadyHad = acquiredBadgeIdsRef.current.includes(badge.id);
         setAcquired(alreadyHad);
         acquiredRef.current = alreadyHad;
-        if (!alreadyHad) startProgress(badge.id);
+
+        if (!alreadyHad) {
+          // 💡 修正：解析開始前に数値をリセット
+          progressRef.current = 0;
+          setProgress(0);
+          startProgress(badge.id);
+        }
       });
 
       targetEl.addEventListener("targetLost", () => {

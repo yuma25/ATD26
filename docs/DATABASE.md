@@ -1,50 +1,21 @@
 # 🗄️ Database Design
 
-本プロジェクトは **Supabase (PostgreSQL)** を使用して、標本データと冒険者の記録を永続化しています。
+## 1. 認識インデックス・マッピング
 
-## 1. テーブル定義 (Table Definitions)
+| Index | 標本名 (badges.name) | モデル (.glb) | 特徴                        |
+| :---- | :------------------- | :------------ | :-------------------------- |
+| 1     | Common Blue          | butterfly.glb | 小さい。scale: 5.0 推奨     |
+| 2     | Leviathan            | whale.glb     | 巨大。scale: 0.07 推奨      |
+| 3     | Moon Jelly           | jellyfish.glb | 繊細。scale: 0.08 推奨      |
+| 4     | Antique Sword        | sword.glb     | 細長い。scale: 0.06 推奨    |
+| 5     | Great Wave           | wave.glb      | 荒々しい。scale: 0.025 推奨 |
 
-### `badges` (標本マスタ)
+## 2. データベース機能 (SQL)
 
-図鑑に登録される標本の基本データ。
+### プロフィール自動作成
 
-| カラム名       | 型        | 説明                         |
-| :------------- | :-------- | :--------------------------- |
-| `id`           | uuid (PK) | 標本の固有ID                 |
-| `name`         | text      | 標本名                       |
-| `description`  | text      | 由来や特徴の解説             |
-| `color`        | text      | UI表現用のカラーコード (Hex) |
-| `model_url`    | text      | 3Dモデル（.glb）のパス       |
-| `target_index` | int       | MindAR ターゲット番号        |
+`auth.users` に新規登録があった際、自動で `public.profiles` にレコードを作成する PostgreSQL トリガーを設定済み。
 
-### `user_badges` (獲得記録)
+### 時間設定
 
-冒険者が実際に発見した記録（スタンプ）。
-
-| カラム名      | 型          | 説明                           |
-| :------------ | :---------- | :----------------------------- |
-| `id`          | uuid (PK)   | 獲得記録の固有ID               |
-| `user_id`     | uuid        | 冒険者のID (Auth.users 参照)   |
-| `badge_id`    | uuid        | 発見した標本のID (Badges 参照) |
-| `acquired_at` | timestamptz | 獲得した日時 (JST)             |
-
----
-
-## 2. セキュリティと権限 (Security & RLS)
-
-Supabase の **Row Level Security (RLS)** を活用し、安全なデータアクセスを実現しています。
-
-- **`badges`**:
-  - `SELECT`: すべての認証済みユーザーに許可。
-- **`user_badges`**:
-  - `SELECT`: 自分の `user_id` に紐づく記録のみ閲覧可能。
-  - `INSERT`: 自分の `user_id` としてのみ新規追加が可能。
-
----
-
-## 3. インデックス (Performance)
-
-検索パフォーマンス向上のため、以下のインデックスを設定しています：
-
-- `user_badges (user_id)`: ユーザーごとの獲得状況を高速に取得。
-- `badges (target_index)`: AR認識時のデータ照合を高速化。
+全ての `created_at` および `acquired_at` は、デフォルトで **JST (UTC+9)** で保存されるよう調整されています。

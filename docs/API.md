@@ -1,38 +1,30 @@
 # 🔌 API & Service Specifications
 
-本アプリでは、フロントエンドとバックエンドの通信を `backend/services/badgeService.ts` に集約しています。
+フロントエンドと Supabase の間に API レイヤーを置くことで、セキュリティと安定性を確保しています。
 
-## 1. サービスメソッド (BadgeService)
+## 1. 主要エンドポイント
 
-### `getAllBadges()`
+### `GET /api/badges`
 
-すべての標本（バッジ）のマスターデータを取得します。
+- **用途**: 全標本データの取得
+- **仕様**: DB の RLS 設定に関わらず、マスターデータを返却。
 
-- **Returns**: `Promise<Badge[]>`
-- **Internal**: Supabase の `badges` テーブルから `target_index` 順に取得。
+### `POST /api/badges/acquire`
 
-### `getAcquiredBadgeIds(userId)`
+- **用途**: 発見した標本の保存
+- **機能**:
+  1. プロフィールの自動修復（プロフィールがないユーザーを救済）。
+  2. 重複登録の防止。
+  3. 管理者権限による強制書き込み。
 
-特定の冒険者が獲得済みの標本ID一覧を取得します。
+### `GET /api/badges/acquired?userId=...`
 
-- **Parameters**: `userId: string`
-- **Returns**: `Promise<string[]>`
-- **Internal**: `user_badges` テーブルを `user_id` でフィルタリング。
+- **用途**: ユーザーごとの獲得済みリスト取得
+- **返却値**: `badge_id` と `acquired_at`（獲得日時）のリスト。
 
-### `acquireBadge(userId, badgeId)`
+## 2. 内部サービス (`BadgeService`)
 
-新しい標本を発見したことを記録します。
+`backend/services/badgeService.ts` は、実行環境に応じて挙動を変えます。
 
-- **Parameters**:
-  - `userId: string`
-  - `badgeId: string`
-- **Returns**: `Promise<UserBadge | null>`
-- **Internal**: `user_badges` テーブルへ新規行を挿入。
-
----
-
-## 2. データ検証と信頼性
-
-- **Zod Schema**: 取得したデータは `backend/types/index.ts` に定義された `BadgeSchema` により実行時に検証されます。
-- **Error Handling**: 通信エラーやバリデーション失敗時は、`server/lib/logger` を通じて構造化ログが記録されます。
-- **Prerendering Safety**: `useSearchParams` を含むページは、ビルド時のエラーを防ぐため `Suspense` 境界内で実行されます。
+- **Client**: ネットワーク経由で上記の API ルートを呼び出し。
+- **Server**: Supabase クライアント（Admin）を使い直接データを操作。

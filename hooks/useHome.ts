@@ -14,12 +14,8 @@ export const useHome = () => {
     "prompt" | "granted" | "denied"
   >("prompt");
 
-  // 💡 修正：無限ループ防止のため、実行中の状態を Ref で管理
   const isLoadingRef = useRef(false);
 
-  /**
-   * カメラの許可を要求する
-   */
   const requestCameraPermission = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -34,7 +30,7 @@ export const useHome = () => {
   }, []);
 
   /**
-   * 初期データのロード
+   * 初期データのロードと獲得順ソート（昇順：古い順）
    */
   const loadData = useCallback(async () => {
     if (isLoadingRef.current) return;
@@ -46,13 +42,35 @@ export const useHome = () => {
       const user = await signInAnonymously();
       if (user) {
         setFullUserId(user.id);
-        const [allBadges, myAcquiredIds] = await Promise.all([
+        const [allBadges, acquiredRows] = await Promise.all([
           BadgeService.getAllBadges(),
-          BadgeService.getAcquiredBadgeIds(user.id),
+          BadgeService.getAcquiredBadges(user.id),
         ]);
 
-        setBadges(allBadges);
+        const myAcquiredIds = acquiredRows.map((r) => r.badge_id);
         setAcquiredBadgeIds(myAcquiredIds);
+
+        const acquisitionMap = new Map(
+          acquiredRows.map((r) => [r.badge_id, r.acquired_at]),
+        );
+
+        // 💡 修正：獲得順に並び替え（昇順：古い発見が上、新しい発見が下へ蓄積）
+        const sortedBadges = [...allBadges].sort((a, b) => {
+          const timeA = acquisitionMap.get(a.id);
+          const timeB = acquisitionMap.get(b.id);
+
+          if (timeA && timeB) {
+            // 両方獲得済み：日時の昇順（古い発見が上、物語の始まり）
+            return new Date(timeA).getTime() - new Date(timeB).getTime();
+          }
+          if (timeA) return -1; // 発見済みは上に
+          if (timeB) return 1; // 発見済みは上に
+
+          // 両方未発見：本来のインデックス順
+          return a.target_index - b.target_index;
+        });
+
+        setBadges(sortedBadges);
       }
     } catch (error) {
       console.error("❌ Roadmap Load Error:", error);
@@ -60,9 +78,8 @@ export const useHome = () => {
       setSyncing(false);
       isLoadingRef.current = false;
     }
-  }, []); // 💡 依存配列を空にしてループを完全に切る
+  }, []);
 
-  // データロード用
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
@@ -79,7 +96,6 @@ export const useHome = () => {
     };
   }, [loadData]);
 
-  // パーミッション監視用
   useEffect(() => {
     const checkPermission = async () => {
       if (typeof window !== "undefined" && navigator.permissions?.query) {
