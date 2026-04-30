@@ -15,8 +15,8 @@ drop table if exists public.profiles;
 create table public.profiles (
   id uuid references auth.users on delete cascade not null primary key,
   party_size int default null, -- 利用人数
-  created_at timestamp with time zone default (now() + interval '9 hours') not null,
-  last_seen timestamp with time zone default (now() + interval '9 hours')
+  created_at timestamp default (now() + interval '9 hours') not null,
+  last_seen timestamp default (now() + interval '9 hours')
 );
 
 -- 標本マスタ
@@ -27,7 +27,7 @@ create table public.badges (
   color text,
   model_url text not null,
   target_index int not null, -- MindARのインデックス (1-5)
-  created_at timestamp with time zone default (now() + interval '9 hours') not null
+  created_at timestamp default (now() + interval '9 hours') not null
 );
 
 -- 獲得記録
@@ -35,7 +35,7 @@ create table public.user_badges (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   badge_id uuid references public.badges(id) on delete cascade not null,
-  acquired_at timestamp with time zone default (now() + interval '9 hours') not null,
+  acquired_at timestamp default (now() + interval '9 hours') not null,
   unique(user_id, badge_id)
 );
 
@@ -49,15 +49,15 @@ grant all on public.profiles to anon, authenticated, service_role;
 grant all on public.badges to anon, authenticated, service_role;
 grant all on public.user_badges to anon, authenticated, service_role;
 
--- 4. 標本実データの登録（最新の1-5マッピング）
--- 💡 5つの標本のみを登録
+-- 4. 標本実データの登録（最新の 0-5 インデックスに完全同期）
 insert into public.badges (name, description, color, model_url, target_index)
 values 
-  ('Common Blue', 'A delicate butterfly with iridescent wings.', '#3e2f28', '/butterfly.glb', 1),
-  ('Leviathan', 'A massive creature from the deep ocean.', '#2563eb', '/whale.glb', 2),
-  ('Moon Jelly', 'A translucent dweller of the coral reefs.', '#10b981', '/jellyfish.glb', 3),
-  ('Antique Sword', 'A relic from a forgotten era.', '#f59e0b', '/sword.glb', 4),
-  ('Great Wave', 'The power of the ocean captured in form.', '#ef4444', '/wave.glb', 5);
+  ('Common Blue', '蝶: 瑠璃色の羽を持つ美しい標本。', '#3e2f28', '/butterfly.glb', 0),
+  ('Leviathan', 'クジラ: 深海に眠る巨大な生命の記憶。', '#2563eb', '/whale.glb', 1),
+  ('Shellcrab', 'ヤドカリ: 硬い殻を背負う磯の冒険者。', '#d97706', '/shellcrab.glb', 2),
+  ('Antique Sword', '剣: 忘れ去られた時代の遺物。', '#f59e0b', '/sword.glb', 3),
+  ('Great Wave', '波: 形を得た海の力の結晶。', '#ef4444', '/wave.glb', 4),
+  ('Moon Jelly', '海月: 珊瑚礁を漂う半透明の住人。', '#10b981', '/jellyfish.glb', 5);
 
 -- 5. 自動プロフィール作成トリガーの設定
 -- ユーザー作成時にプロフィールを自動生成する関数

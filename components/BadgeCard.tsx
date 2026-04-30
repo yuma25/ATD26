@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * 【第1章】モジュールのインポート
+ * Reactの基本機能や、アニメーションのためのframer-motion、アイコンライブラリのlucide-react、
+ * そして共通の型定義などを読み込みます。
+ */
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -13,40 +18,70 @@ import {
   MapPin,
   Waves,
   Sword,
+  Shell,
 } from "lucide-react";
 import { Badge } from "../backend/types";
 
-// ターゲットインデックスに基づいたアイコンの割り当て
-const IconList: LucideIcon[] = [Bug, Waves, CircleDot, Sword, Wind, MapPin];
+/**
+ * 【第2章】定数とインターフェースの定義
+ */
 
+// ターゲットの番号（0〜5）に基づいて表示するアイコンを決定します。
+// 0:Butterfly, 1:Whale, 2:Shellcrab, 3:Sword, 4:Wave, 5:Jellyfish
+const IconList: LucideIcon[] = [
+  Bug,
+  MapPin,
+  Shell,
+  Sword,
+  Waves,
+  CircleDot,
+  Wind,
+];
+
+/**
+ * BadgeCardProps の説明：
+ * @param badge - 表示する標本のデータ（名前や3DモデルのURLなど）
+ * @param isAcquired - すでに発見済み（取得済み）かどうか
+ * @param onSaveScroll - ページ遷移前に現在のスクロール位置を保存するための関数
+ */
 interface BadgeCardProps {
   badge: Badge;
   isAcquired: boolean;
   onSaveScroll?: () => void;
 }
 
+/**
+ * 【第3章】BadgeCardコンポーネント本体
+ */
 export const BadgeCard = ({
   badge,
   isAcquired,
   onSaveScroll,
 }: BadgeCardProps) => {
   const router = useRouter();
+
+  // 「詳細アクション（観察・逃がす）」を表示するかどうかの状態管理
   const [showActions, setShowActions] = useState(false);
 
-  // インデックスに基づいてアイコンを選択（なければ CircleDot）
+  // インデックスに基づいて表示するアイコンを選択します（見つからない場合はCircleDot）
   const Icon = IconList[badge.target_index] || CircleDot;
   const locked = !isAcquired;
 
-  // IDから一意な回転角を生成（NaNにならないように安全な実装）
+  // 標本のID（UUID）に基づいて、カードを少しだけ左右に傾けます。
+  // これにより、手書きのノートに写真を貼ったような「アナログなバラツキ」を表現します。
   const rotation = useMemo(() => {
     if (!isAcquired) return 0;
-    // IDの文字列を数値に変換して決定論的に回転方向を決める
+
+    // ID（文字列）の各文字の文字コードを合計して、一意な傾きを算出します。
     const charCodeSum = badge.id
       .split("")
       .reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return charCodeSum % 2 === 0 ? 1.5 : -1.5;
   }, [badge.id, isAcquired]);
 
+  /**
+   * ハンドラー関数：ページ遷移を処理します。
+   */
   const handleOpenViewer = () => {
     if (onSaveScroll) onSaveScroll();
     router.push(
@@ -61,6 +96,9 @@ export const BadgeCard = ({
     );
   };
 
+  /**
+   * 【第4章】描画ロジック
+   */
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
@@ -70,7 +108,7 @@ export const BadgeCard = ({
       className="relative flex justify-center w-full group"
       style={{ rotate: `${rotation}deg` }}
     >
-      {/* 貼り付け用のマスキングテープ */}
+      {/* 取得済みの場合のみ、四隅にマスキングテープの演出を表示 */}
       {!locked && (
         <>
           <div className="tape -top-5 left-1/2 -translate-x-1/2 opacity-80" />
@@ -86,7 +124,8 @@ export const BadgeCard = ({
         `}
       >
         <AnimatePresence mode="wait">
-          {locked ? (
+          {/* 未取得（ロック状態）の表示 */}
+          {locked && (
             <motion.div
               key="locked"
               initial={{ opacity: 0 }}
@@ -101,7 +140,10 @@ export const BadgeCard = ({
                 Uncharted Area
               </p>
             </motion.div>
-          ) : showActions ? (
+          )}
+
+          {/* 取得済み 且つ アクション選択中の表示 */}
+          {!locked && showActions && (
             <motion.div
               key="actions"
               initial={{ opacity: 0, y: 10 }}
@@ -140,7 +182,7 @@ export const BadgeCard = ({
                 </div>
               </div>
 
-              {/* Action Protocols */}
+              {/* 操作ボタン群 */}
               <div className="w-full space-y-2 border-t border-dashed border-black/10 pt-6">
                 <button
                   onClick={handleOpenViewer}
@@ -170,7 +212,10 @@ export const BadgeCard = ({
                 </button>
               </div>
             </motion.div>
-          ) : (
+          )}
+
+          {/* 取得済み 且つ 通常状態（スケッチ風アイコン）の表示 */}
+          {!locked && !showActions && (
             <motion.div
               key="sketch"
               initial={{ opacity: 0 }}
@@ -178,7 +223,6 @@ export const BadgeCard = ({
               exit={{ opacity: 0 }}
               className="flex flex-col items-center gap-6 w-full cursor-pointer"
             >
-              {/* スケッチアイコン */}
               <div className="relative p-6">
                 <Icon
                   size={80}

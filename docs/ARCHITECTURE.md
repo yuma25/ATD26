@@ -1,43 +1,51 @@
 # 🏛️ Architecture & Technology Stack
 
-## 1. アーキテクチャ概要
+### — 設計思想と技術構造 —
 
-本プロジェクトは、AR体験と実データの整合性を重視した 3 レイヤー構造を採用しています。
+本プロジェクトは、AR体験の即時性と、永続データの正確性を両立させるための 3 レイヤー構造を採用しています。
+
+---
+
+## 1. アーキテクチャ概要 (Overview)
 
 ```mermaid
 graph TD
-    subgraph Frontend [Next.js 16 / React 19]
-        Home[Home: 時系列ロードマップ]
-        AR[AR: 高精度追従エンジン]
-        Constants[lib/constants: 標本定義]
+    subgraph Client ["📱 クライアント層 (React/Next.js)"]
+        UI["UI Components<br/>(Framer Motion)"]
+        Hooks["Hooks<br/>(State/AR Logic)"]
     end
 
-    subgraph API_Layer [Next.js API Routes]
-        BadgeAPI[api/badges: 管理者権限での通信]
+    subgraph Service ["⚙️ 抽象化層 (Service Layer)"]
+        BS["BadgeService<br/>(API/DB Switcher)"]
     end
 
-    subgraph Backend [Supabase]
-        Auth[匿名認証]
-        DB[(PostgreSQL: 獲得記録)]
+    subgraph Backend ["☁️ データ・認証層 (Supabase)"]
+        Auth["匿名認証"]
+        DB[("PostgreSQL")]
     end
 
-    Home --> BadgeAPI
-    AR --> Constants
-    BadgeAPI --> DB
+    UI --> Hooks
+    Hooks --> BS
+    BS --> Auth
+    BS --> DB
 ```
 
-## 2. 技術スタック
+---
 
-- **Frontend**: Next.js 16 (App Router), React 19, Framer Motion
-- **AR Engine**: MindAR.js (画像認識), A-Frame (3D空間制御)
-- **Backend**: Supabase (Auth / Database)
-- **Logic**: TypeScript (型安全性の徹底)
+## 2. 処理のライフサイクル (Life Cycle)
 
-## 3. 処理のライフサイクル
+標本の「発見」から「記録」までの流れ：
 
-### 標本の「発見」から「記録」まで
+1.  **認識 (Recognition)**: `AR/page.tsx` が `targets.mind` を通じて物理的な絵画を検知。
+2.  **解析 (Analysis)**: `useAR.ts` が 3.0秒間の「注視」を確認し、解析ゲージを進行。
+3.  **保存 (Persistence)**: サーバーサイド API が管理者権限で `user_badges` テーブルへ書き込み。
+4.  **反映 (Feedback)**: ホーム画面に戻った際、`useHome.ts` が最新データを取得し、発見順にジャーナルを再構築。
 
-1.  **認識**: `AR/page.tsx` が `targets.mind` に基づき絵画を特定。
-2.  **解析**: `useAR.ts` が解析ゲージを走らせ、100% で獲得リクエストを送信。
-3.  **保存**: `api/badges/acquire` が管理者権限で `user_badges` に日時（JST）と共に保存。
-4.  **反映**: ホームに戻ると、`useHome.ts` が獲得日時順に標本を並べ替え、冒険の軌跡を更新。
+---
+
+## 3. 選定技術の理由
+
+- **Next.js 16 (App Router)**: 高速なページ遷移と、強力な API ルート機能のため。
+- **MindAR.js**: 外部アプリ不要で、ウェブブラウザのみで高品質な画像追従を実現するため。
+- **Supabase**: リアルタイムなデータ同期と、匿名認証による「ログイン不要の体験」を即座に構築するため。
+- **Tailwind CSS v4**: 「手書きの質感」や「羊皮紙の背景」といったアナログなデザインを、宣言的に素早く実装するため。

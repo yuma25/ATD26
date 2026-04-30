@@ -1,24 +1,58 @@
-# 🎨 新しい標本（絵画）の追加手順
+# 🎨 新しい標本の追加手順
 
-## 1. データベースへの登録
+### — 世界を拡張するガイド —
 
-Supabase の `badges` テーブルに新しい標本を登録します。
+このアプリケーションに新しい絵画（ターゲット）と標本（3Dモデル）を追加するためのステップバイステップガイドです。
 
-- `target_index`: `.mind` ファイルの何番目の画像か（1から順に指定）。
+---
 
-## 2. アセット配置
+## 1. アセットの準備
 
-- `public/` に新しい `.glb` ファイルを配置。
-- `public/targets.mind` を [MindAR Compile Tool](https://hiukim.github.io/mind-ar-js-doc/tools/compile) で更新。
+### 3Dモデル
 
-## 3. 質感と動きの定義（重要）
+- 形式: `.glb`
+- 配置先: `public/` ディレクトリ
+- 推奨: PBRテクスチャを使用し、10MB以下に最適化してください。
 
-`backend/lib/constants.ts` を開き、新標本の定義を追加します。
+### AR学習データ (`targets.mind`)
 
-- `scale`: 表示サイズ。
-- `outerAnimation`: 旋回速度。
-- `innerAnimation`: 浮遊や脈動の動き。
+1.  [MindAR Compile Tool](https://hiukim.github.io/mind-ar-js-doc/tools/compile) を開きます。
+2.  新しい絵画画像をアップロードします。
+3.  **注意**: 画像の並び順が `target_index` になります。
+4.  書き出された `targets.mind` を `public/` に上書き配置します。
 
-## 4. アイコンの指定
+---
 
-`components/BadgeCard.tsx` の `IconList` に、`target_index` に応じた Lucide アイコンを追加します。
+## 2. データベース登録 (Supabase)
+
+`badges` テーブルに新しいレコードを追加します。
+
+- `name`: 標本名
+- `target_index`: 学習データの順番（0から開始）
+- `model_url`: `/モデル名.glb`
+
+---
+
+## 3. 質感と動きの定義
+
+`backend/lib/constants.ts` を編集し、追加した標本の振る舞いを定義します。
+
+```typescript
+// 例: 新しい標本 "Starry Night" の設定
+"Starry Night": {
+  scale: "2.0 2.0 2.0",            // 画面上の大きさ
+  outerAnimation: "property: rotation; to: 0 360 0; dur: 8000; loop: true;", // 旋回
+  innerAnimation: "property: position; to: 0 0.1 0; dur: 2000; dir: alternate; loop: true;", // 浮遊
+  minScale: 1.5,
+  maxScale: 3.0
+}
+```
+
+---
+
+## 4. UIアイコンの割り当て
+
+`components/BadgeCard.tsx` 内の `IconList` を更新し、その標本を象徴する Lucide アイコンを紐付けます。
+
+> [!IMPORTANT]
+> 変更後は必ず `pnpm run build` を実行し、型チェックとパスの整合性を確認してください。

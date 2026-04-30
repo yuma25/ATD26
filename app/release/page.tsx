@@ -7,7 +7,13 @@ import { CloseButton } from "../../components/layout/CloseButton";
 import { getSpecimenSettings } from "../../backend/lib/constants";
 
 /**
- * A-Frame シーン要素のためのインターフェース
+ * 【フォトモード画面】
+ * 獲得した標本を現実世界に配置して、写真を撮影するための画面です。
+ * 自由な角度や位置で標本を観察できます。
+ */
+
+/**
+ * A-Frame シーン要素のための型定義
  */
 interface ASceneElement extends HTMLElement {
   renderer: {
@@ -22,19 +28,25 @@ interface ASceneElement extends HTMLElement {
 function ReleaseContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // URLパラメータから標本の情報を取得します（デフォルトは蝶）
   const modelUrl = searchParams.get("model") || "/butterfly.glb";
   const name = searchParams.get("name") || "標本";
 
   const [mounted, setMounted] = useState(false);
-  const [status, setStatus] = useState("init");
-  const [isExiting, setIsExiting] = useState(false);
-  const [isCapturing, setIsCapturing] = useState(false);
+  const [status, setStatus] = useState("init"); // 状態：init -> loading -> ready -> started
+  const [isExiting, setIsExiting] = useState(false); // 終了アニメーション中か
+  const [isCapturing, setIsCapturing] = useState(false); // 写真撮影中か
 
   const arContainerRef = useRef<HTMLDivElement>(null);
-  const lastInjectedRef = useRef("");
+  const lastInjectedKeyRef = useRef("");
 
+  /**
+   * --- 【第1章：クリーンアップ処理】 ---
+   * ARシーンやカメラストリームを正しく終了させます。
+   */
   const cleanupAR = () => {
-    console.log("🧹 Cleaning up Release AR...");
+    // 1. A-Frame シーンの停止と削除
     const sceneEl = document.querySelector("a-scene");
     if (sceneEl) {
       const scene = sceneEl as unknown as {
@@ -43,13 +55,12 @@ function ReleaseContent() {
       if (scene.systems?.["mindar-image-system"]) {
         try {
           scene.systems["mindar-image-system"].stop();
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
       sceneEl.remove();
     }
 
+    // 2. カメラストリームの停止とビデオ要素の削除
     document.querySelectorAll("video").forEach((v) => {
       const s = v.srcObject as MediaStream | null;
       if (s) s.getTracks().forEach((t) => t.stop());
@@ -57,6 +68,10 @@ function ReleaseContent() {
     });
   };
 
+  /**
+   * --- 【第2章：カメラ背景の設定】 ---
+   * デバイスのカメラ映像を背景として表示します。
+   */
   const setupCameraBackground = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -77,10 +92,13 @@ function ReleaseContent() {
       document.body.appendChild(video);
       await video.play();
     } catch (e) {
-      console.error("Camera failed", e);
+      console.error("❌ カメラの起動に失敗しました", e);
     }
   };
 
+  /**
+   * --- 【第3章：ARライブラリの読み込み】 ---
+   */
   const startAR = async () => {
     setStatus("loading");
     try {
@@ -101,7 +119,7 @@ function ReleaseContent() {
 
       setStatus("ready");
     } catch (e) {
-      console.error("Script load failed", e);
+      console.error("❌ スクリプトの読み込みに失敗しました", e);
       setStatus("init");
     }
   };
@@ -113,8 +131,12 @@ function ReleaseContent() {
     return () => cleanupAR();
   }, []);
 
+  /**
+   * --- 【第4章：写真撮影機能】 ---
+   * 現在のカメラ映像とAR標本を合成して画像として保存します。
+   */
   const takePhoto = async () => {
-    if (isCapturing) return;
+    if (isCapturing) return; // 二重撮影防止
     setIsCapturing(true);
 
     try {
@@ -122,47 +144,55 @@ function ReleaseContent() {
       const videoEl = document.querySelector("video");
       if (!sceneEl || !videoEl) return;
 
+      // 1. A-Frame シーンを最新状態にレンダリング
       if (sceneEl.renderer && sceneEl.camera) {
         sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       }
 
+      // 2. 合成用のキャンバスを作成
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
+      // 3. カメラ映像を描画
       canvas.width = videoEl.videoWidth;
       canvas.height = videoEl.videoHeight;
       ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
 
+      // 4. 標本（ARシーン）を重ねて描画
       if (sceneEl.canvas) {
         ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
       }
 
+      // 5. 画像としてダウンロード
       const link = document.createElement("a");
       link.download = `Specimen_${name}_${Date.now()}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (e) {
-      console.error("Capture failed", e);
+      console.error("❌ 写真の保存に失敗しました", e);
     } finally {
       setTimeout(() => setIsCapturing(false), 800);
     }
   };
 
+  /**
+   * --- 【第5章：シーンの構築】 ---
+   */
   useEffect(() => {
     const currentKey = `${modelUrl}:${name}`;
     if (
       status === "ready" &&
       arContainerRef.current &&
-      lastInjectedRef.current !== currentKey
+      lastInjectedKeyRef.current !== currentKey
     ) {
-      console.log("🛠 [Release] Injecting scene...");
       const settings = getSpecimenSettings(name);
 
+      // ARシーン（A-Frame）をHTMLとして構築し、注入します
       arContainerRef.current.innerHTML = `
         <a-scene 
           embedded 
-          renderer="colorManagement: true, physicallyCorrectLights: false, exposure: 1.2, alpha: true, preserveDrawingBuffer: true, antialias: true"
+          renderer="colorManagement: true, exposure: 1.2, alpha: true, preserveDrawingBuffer: true, antialias: true"
           vr-mode-ui="enabled: false"
           device-orientation-permission-ui="enabled: false"
           loading-screen="enabled: false"
@@ -183,14 +213,13 @@ function ReleaseContent() {
         </a-scene>
       `;
 
-      lastInjectedRef.current = currentKey;
+      lastInjectedKeyRef.current = currentKey;
 
       const sceneEl = arContainerRef.current.querySelector(
         "a-scene",
       ) as ASceneElement;
       const boot = () => {
-        console.log("🏁 [Release] AR Scene Loaded");
-        setupCameraBackground();
+        setupCameraBackground(); // カメラ映像を開始
         setStatus("started");
         setTimeout(() => window.dispatchEvent(new Event("resize")), 300);
       };
@@ -216,6 +245,7 @@ function ReleaseContent() {
         fontFamily: "sans-serif",
       }}
     >
+      {/* 終了時のオーバーレイ */}
       {isExiting && (
         <div
           style={{
@@ -232,6 +262,7 @@ function ReleaseContent() {
         </div>
       )}
 
+      {/* 初期ロード画面 */}
       {(status === "loading" || status === "ready") && (
         <div
           style={{
@@ -261,6 +292,7 @@ function ReleaseContent() {
         </div>
       )}
 
+      {/* ARシーンコンテナ */}
       <div
         ref={arContainerRef}
         style={{
@@ -272,6 +304,7 @@ function ReleaseContent() {
         }}
       />
 
+      {/* 操作UI */}
       {status === "started" && !isExiting && (
         <>
           <div
@@ -287,6 +320,7 @@ function ReleaseContent() {
               zIndex: 1000,
             }}
           >
+            {/* シャッターボタン */}
             <button
               onClick={takePhoto}
               disabled={isCapturing}
@@ -317,6 +351,7 @@ function ReleaseContent() {
               ></div>
             </button>
           </div>
+          {/* モード表示 */}
           <div
             style={{
               position: "absolute",
@@ -352,6 +387,7 @@ function ReleaseContent() {
         </>
       )}
 
+      {/* 撮影時のフラッシュエフェクト */}
       {isCapturing && (
         <div
           style={{
@@ -375,6 +411,8 @@ function ReleaseContent() {
       `,
         }}
       />
+
+      {/* 閉じるボタン */}
       <CloseButton
         onClick={() => {
           setIsExiting(true);

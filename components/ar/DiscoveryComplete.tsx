@@ -1,13 +1,26 @@
 "use client";
 
+/**
+ * 【第1章】モジュールのインポート
+ * アニメーション用のframer-motionと、チェックマークアイコンを読み込みます。
+ */
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 
+/**
+ * DiscoveryCompleteProps の説明：
+ * @param badgeName - 発見した標本の名前
+ * @param onClose - 画面を閉じる（または次へ進む）ための関数
+ */
 interface DiscoveryCompleteProps {
   badgeName: string;
   onClose: () => void;
 }
 
+/**
+ * 【第2章】DiscoveryCompleteコンポーネント本体
+ * ARで標本を認識した直後に表示される「発見完了」の演出画面です。
+ */
 export const DiscoveryComplete = ({
   badgeName,
   onClose,
@@ -19,7 +32,10 @@ export const DiscoveryComplete = ({
       className="flex flex-col items-center justify-center gap-8 pointer-events-auto cursor-pointer"
       onClick={onClose}
     >
-      {/* 完了の刻印演出 */}
+      {/* 
+        【演出】完了の刻印
+        スタンプをポンと押したような、少し斜めに回転しながら現れるアニメーションです。
+      */}
       <motion.div
         initial={{ scale: 2, rotate: -20, opacity: 0 }}
         animate={{ scale: 1, rotate: -5, opacity: 1 }}
@@ -32,6 +48,7 @@ export const DiscoveryComplete = ({
         </div>
       </motion.div>
 
+      {/* 発見した標本の名前を表示 */}
       <div className="text-center space-y-2">
         <h2 className="text-white text-3xl font-black italic font-serif tracking-tight">
           {badgeName}
@@ -41,6 +58,7 @@ export const DiscoveryComplete = ({
         </p>
       </div>
 
+      {/* ユーザーにタップを促す点滅メッセージ */}
       <motion.div
         animate={{ opacity: [0.3, 0.6, 0.3] }}
         transition={{ duration: 2, repeat: Infinity }}

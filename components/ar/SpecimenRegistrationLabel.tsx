@@ -1,16 +1,33 @@
 "use client";
 
+/**
+ * 【第1章】モジュールのインポート
+ * 標本の型定義を読み込みます。
+ */
 import { Badge } from "../../backend/types";
 
+/**
+ * SpecimenRegistrationLabelProps の説明：
+ * @param activeBadge - 現在認識されている標本のデータ。認識されていない場合は null になります。
+ * @param onClose - ラベルを閉じるための関数
+ */
 interface SpecimenRegistrationLabelProps {
   activeBadge: Badge | null;
   onClose: () => void;
 }
 
+/**
+ * 【第2章】SpecimenRegistrationLabelコンポーネント本体
+ * 博物館の標本ラベル（キャプション）のようなデザインのUIコンポーネントです。
+ * AR画面で標本を認識している間、画面下部に表示されます。
+ */
 export const SpecimenRegistrationLabel = ({
   activeBadge,
   onClose,
 }: SpecimenRegistrationLabelProps) => {
+  // activeBadge が存在しない場合は、何も描画しません（早期リターン）
+  if (!activeBadge) return null;
+
   return (
     <div
       onClick={onClose}
@@ -29,6 +46,7 @@ export const SpecimenRegistrationLabel = ({
         overflow: "hidden",
       }}
     >
+      {/* 登録IDを表示（右上に小さく） */}
       <div
         style={{
           position: "absolute",
@@ -39,9 +57,10 @@ export const SpecimenRegistrationLabel = ({
           fontFamily: "monospace",
         }}
       >
-        REG-ID: {activeBadge?.id.slice(0, 8)}
+        REG-ID: {activeBadge.id.slice(0, 8)}
       </div>
 
+      {/* 標本名エリア */}
       <div
         style={{
           borderBottom: "2px solid #000",
@@ -70,10 +89,11 @@ export const SpecimenRegistrationLabel = ({
             fontStyle: "italic",
           }}
         >
-          {activeBadge?.name}
+          {activeBadge.name}
         </h2>
       </div>
 
+      {/* 詳細情報エリア（グリッドレイアウト） */}
       <div
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}
       >
@@ -118,6 +138,7 @@ export const SpecimenRegistrationLabel = ({
         </div>
       </div>
 
+      {/* 登録メタデータ（フッター的な情報） */}
       <div
         style={{
           marginTop: "30px",
