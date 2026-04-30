@@ -643,7 +643,7 @@ function StatsOverview({
           </div>
         </div>
         <div className="p-4 md:p-6 h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <AreaChart
               data={stats?.hourlyStats}
               margin={{ top: 10, right: 10, left: -20, bottom: 0 }}

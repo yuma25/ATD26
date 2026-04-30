@@ -149,8 +149,8 @@ async function handleGlobalStatsRequest(period: string) {
   if (authError) throw authError;
 
   // 管理者（メールプロバイダーを使用し、かつ匿名ではない）のIDを抽出
-  const adminIds = authUsers.users
-    .filter((u) => u.app_metadata.provider === "email" && !u.is_anonymous)
+  const adminIds = (authUsers.users || [])
+    .filter((u) => u?.app_metadata?.provider === "email" && !u?.is_anonymous)
     .map((u) => u.id);
 
   // 1. 全ユーザーのリストを新着順で取得
@@ -162,12 +162,14 @@ async function handleGlobalStatsRequest(period: string) {
   if (profilesError) throw profilesError;
 
   // 💡 管理者を除外した「純粋な一般ユーザー」のリストを作成
-  const profiles = allProfiles.filter((p) => !adminIds.includes(p.id));
+  const profiles = (allProfiles || []).filter(
+    (p) => p?.id && !adminIds.includes(p.id),
+  );
 
   // 2. 数値を集計（JavaScriptの計算機能を使用）
   const totalDevices = profiles.length;
   const totalVisitors = (profiles as { party_size: number }[]).reduce(
-    (acc, curr) => acc + (curr.party_size || 1),
+    (acc, curr) => acc + (curr?.party_size || 1),
     0,
   );
 
@@ -186,7 +188,7 @@ async function handleGlobalStatsRequest(period: string) {
 
   // 💡 バッジ獲得記録からも管理者によるものを除外
   const recentBadges = (allRecentBadges || []).filter(
-    (b) => !adminIds.includes(b.user_id),
+    (b) => b?.user_id && !adminIds.includes(b.user_id),
   );
 
   // 5. 総発見数を取得（管理者除外）
@@ -195,7 +197,7 @@ async function handleGlobalStatsRequest(period: string) {
     .select("user_id");
 
   const totalBadges = (allUserBadges || []).filter(
-    (b) => !adminIds.includes(b.user_id),
+    (b) => b?.user_id && !adminIds.includes(b.user_id),
   ).length;
 
   // 6. グラフ用の「時系列データ」を作成

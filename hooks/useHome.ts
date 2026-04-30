@@ -56,8 +56,8 @@ export const useHome = () => {
         const realId = user.id;
         setFullUserId(realId);
 
-        const isEmailUser = user.app_metadata.provider === "email";
-        const isAnonymous = user.is_anonymous;
+        const isEmailUser = user.app_metadata?.provider === "email";
+        const isAnonymous = user.is_anonymous ?? false;
         const adminActive = !!(isEmailUser && !isAnonymous);
 
         setIsAdmin(adminActive);
