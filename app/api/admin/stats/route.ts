@@ -143,13 +143,26 @@ async function handleUserDetailRequest(userId: string) {
 async function handleGlobalStatsRequest(period: string) {
   if (!supabaseAdmin) throw new Error("Admin client missing");
 
+  // 0. 管理者ユーザーのリストを特定します（統計から除外するため）
+  const { data: authUsers, error: authError } =
+    await supabaseAdmin.auth.admin.listUsers();
+  if (authError) throw authError;
+
+  // 管理者（メールプロバイダーを使用し、かつ匿名ではない）のIDを抽出
+  const adminIds = authUsers.users
+    .filter((u) => u.app_metadata.provider === "email" && !u.is_anonymous)
+    .map((u) => u.id);
+
   // 1. 全ユーザーのリストを新着順で取得
-  const { data: profiles, error: profilesError } = await supabaseAdmin
+  const { data: allProfiles, error: profilesError } = await supabaseAdmin
     .from("profiles")
     .select("id, party_size, created_at, last_seen")
     .order("created_at", { ascending: false });
 
   if (profilesError) throw profilesError;
+
+  // 💡 管理者を除外した「純粋な一般ユーザー」のリストを作成
+  const profiles = allProfiles.filter((p) => !adminIds.includes(p.id));
 
   // 2. 数値を集計（JavaScriptの計算機能を使用）
   const totalDevices = profiles.length;
@@ -161,27 +174,36 @@ async function handleGlobalStatsRequest(period: string) {
   // 3. グラフ表示用の期間データを準備
   const now = new Date();
   let startDate = new Date();
-  if (period === "7d") startDate.setDate(now.getDate() - 7);
+  if (period === "1h") startDate.setHours(now.getHours() - 1);
   else if (period === "all") startDate = new Date(0);
   else startDate.setHours(now.getHours() - 24);
 
   // 4. その期間内に見つかった標本の数を取得
-  const { data: recentBadges } = await supabaseAdmin
+  const { data: allRecentBadges } = await supabaseAdmin
     .from("user_badges")
-    .select("acquired_at")
+    .select("acquired_at, user_id")
     .gte("acquired_at", startDate.toISOString());
 
-  // 5. 総発見数を取得
-  const { count: totalBadges } = await supabaseAdmin
+  // 💡 バッジ獲得記録からも管理者によるものを除外
+  const recentBadges = (allRecentBadges || []).filter(
+    (b) => !adminIds.includes(b.user_id),
+  );
+
+  // 5. 総発見数を取得（管理者除外）
+  const { data: allUserBadges } = await supabaseAdmin
     .from("user_badges")
-    .select("*", { count: "exact", head: true });
+    .select("user_id");
+
+  const totalBadges = (allUserBadges || []).filter(
+    (b) => !adminIds.includes(b.user_id),
+  ).length;
 
   // 6. グラフ用の「時系列データ」を作成
   const hourlyStats = generateTimeSeries(
     period,
     now,
     profiles as { created_at: string }[],
-    (recentBadges || []) as { acquired_at: string }[],
+    recentBadges as { acquired_at: string }[],
   );
 
   // 7. 最近のユーザー20名分をピックアップ
@@ -221,20 +243,23 @@ function formatToJST(dateStr: string) {
 /**
  * 【ユーティリティ】グラフ用の時系列ラベルを作成
  */
-function getJSTKey(date: Date, type: "hour" | "day") {
+function getJSTKey(date: Date, type: "hour" | "day" | "minute") {
   const parts = new Intl.DateTimeFormat("ja-JP", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
+    minute: "2-digit",
     hour12: false,
   }).formatToParts(date);
   const m: Record<string, string> = {};
   parts.forEach((p) => (m[p.type] = p.value));
-  return type === "hour"
-    ? `${m.year}-${m.month}-${m.day} ${m.hour}:00`
-    : `${m.month}/${m.day}`;
+
+  if (type === "minute")
+    return `${m.year}-${m.month}-${m.day} ${m.hour}:${m.minute}`;
+  if (type === "hour") return `${m.year}-${m.month}-${m.day} ${m.hour}:00`;
+  return `${m.month}/${m.day}`;
 }
 
 /**
@@ -247,23 +272,36 @@ function generateTimeSeries(
   badges: { acquired_at: string }[],
 ) {
   const stats = [];
-  const is24h = period === "24h";
-  const count = is24h ? 24 : period === "7d" ? 7 : 30;
+  let count = 0;
+  let interval = 0;
+  let type: "minute" | "hour" | "day" = "hour";
+
+  if (period === "1h") {
+    count = 60;
+    interval = 60000; // 1分
+    type = "minute";
+  } else if (period === "24h") {
+    count = 24;
+    interval = 3600000; // 1時間
+    type = "hour";
+  } else {
+    count = 30; // 全期間（直近30日分）
+    interval = 86400000; // 1日
+    type = "day";
+  }
 
   for (let i = 0; i < count; i++) {
-    const d = new Date(
-      now.getTime() - (count - 1 - i) * (is24h ? 3600000 : 86400000),
-    );
-    const labelKey = getJSTKey(d, is24h ? "hour" : "day");
-    const label = is24h ? labelKey.split(" ")[1] : labelKey;
+    const d = new Date(now.getTime() - (count - 1 - i) * interval);
+    const labelKey = getJSTKey(d, type);
+
+    // ラベルの表示形式（1hなら "HH:mm"、24hなら "HH:00"、allなら "MM/DD"）
+    const label = type === "day" ? labelKey : labelKey.split(" ")[1];
 
     const devices = profiles.filter(
-      (p) =>
-        getJSTKey(new Date(p.created_at), is24h ? "hour" : "day") === labelKey,
+      (p) => getJSTKey(new Date(p.created_at), type) === labelKey,
     ).length;
     const badgeCount = badges.filter(
-      (b) =>
-        getJSTKey(new Date(b.acquired_at), is24h ? "hour" : "day") === labelKey,
+      (b) => getJSTKey(new Date(b.acquired_at), type) === labelKey,
     ).length;
 
     stats.push({ hour: label, devices, badges: badgeCount });

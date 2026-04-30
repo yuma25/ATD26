@@ -581,13 +581,13 @@ function StatsOverview({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <h2 className="text-2xl font-black tracking-tight">全体統計</h2>
         <div className="flex bg-white rounded-xl border border-[#3e2f28]/10 p-1 shadow-sm">
-          {["24h", "7d", "all"].map((p) => (
+          {["1h", "24h", "all"].map((p) => (
             <button
               key={p}
               onClick={() => onPeriodChange(p)}
               className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${period === p ? "bg-[#3e2f28] text-white" : "text-[#3e2f28]/40 hover:text-[#3e2f28]"}`}
             >
-              {p === "24h" ? "24時間" : p === "7d" ? "7日間" : "全期間"}
+              {p === "1h" ? "1時間" : p === "24h" ? "24時間" : "全期間"}
             </button>
           ))}
         </div>

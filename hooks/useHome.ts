@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Badge } from "../backend/types";
 import { BadgeService } from "../backend/services/badgeService";
-import { signInAnonymously } from "../backend/lib/supabase";
+import { signInAnonymously, supabase } from "../backend/lib/supabase";
 
 /**
  * 【ホーム画面用カスタムフック】
@@ -15,7 +15,9 @@ export const useHome = () => {
   const [badges, setBadges] = useState<Badge[]>([]); // 標本リスト
   const [acquiredBadgeIds, setAcquiredBadgeIds] = useState<string[]>([]); // 獲得済みIDリスト
   const [syncing, setSyncing] = useState(false); // 同期中フラグ
-  const [fullUserId, setFullUserId] = useState<string>(""); // ユーザーID
+  const [fullUserId, setFullUserId] = useState<string>(""); // 内部処理用ID
+  const [displayId, setDisplayId] = useState<string>(""); // 💡 画面表示用ID
+  const [isAdmin, setIsAdmin] = useState(false); // 💡 管理者フラグ
 
   // partySize の状態: undefined (確認中), null (未設定), number (設定済み)
   const [partySize, setPartySize] = useState<number | null | undefined>(
@@ -41,44 +43,76 @@ export const useHome = () => {
     setSyncing(true);
 
     try {
-      // 1. 匿名サインインしてユーザー情報を取得
-      const user = await signInAnonymously();
-      if (!user) {
-        throw new Error("ユーザー認証に失敗しました");
-      }
-      setFullUserId(user.id);
+      if (!supabase) throw new Error("Supabase client not initialized");
 
-      // 2. 標本、獲得履歴、プロフィールを並列（同時）に取得して効率化
-      const [allBadges, acquiredRows, profile] = await Promise.all([
-        BadgeService.getAllBadges(),
-        BadgeService.getAcquiredBadges(user.id),
-        BadgeService.getProfile(user.id),
-      ]);
+      // 1. セッションがあるか確認（自動サインインはここではしない）
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
 
-      // 3. 人数設定 (party_size) の判定
-      if (profile && typeof profile.party_size === "number") {
-        setPartySize(profile.party_size);
+      if (user) {
+        // --- ログイン済みユーザー（管理者または復帰ユーザー）の処理 ---
+        const realId = user.id;
+        setFullUserId(realId);
+
+        const isEmailUser = user.app_metadata.provider === "email";
+        const isAnonymous = user.is_anonymous;
+        const adminActive = !!(isEmailUser && !isAnonymous);
+
+        setIsAdmin(adminActive);
+
+        if (adminActive) {
+          setDisplayId(`STAFF-ADMIN-${realId.slice(0, 4).toUpperCase()}`);
+          // 管理者は常に最新状態を維持するため同期
+          await BadgeService.updateProfile(realId, {});
+        } else {
+          setDisplayId(realId);
+        }
+
+        // データの取得
+        const [allBadges, acquiredRows, profile] = await Promise.all([
+          BadgeService.getAllBadges(),
+          BadgeService.getAcquiredBadges(realId),
+          BadgeService.getProfile(realId),
+        ]);
+
+        // 人数設定の判定
+        if (profile && typeof profile.party_size === "number") {
+          setPartySize(profile.party_size);
+        } else {
+          setPartySize(null);
+        }
+
+        // 獲得状況の整理
+        const myAcquiredIds = acquiredRows.map((r) => r.badge_id);
+        setAcquiredBadgeIds(myAcquiredIds);
+
+        // 並び替え
+        const acquisitionMap = new Map(
+          acquiredRows.map((r) => [r.badge_id, r.acquired_at]),
+        );
+        const sortedBadges = [...allBadges].sort((a, b) => {
+          const tA = acquisitionMap.get(a.id);
+          const tB = acquisitionMap.get(b.id);
+          if (tA && tB) return new Date(tA).getTime() - new Date(tB).getTime();
+          if (tA) return -1;
+          if (tB) return 1;
+          return a.target_index - b.target_index;
+        });
+        setBadges(sortedBadges);
       } else {
-        setPartySize(null); // 未設定の場合は入力を促す
+        // --- 未ログインユーザー（新規ゲスト）の処理 ---
+        // 💡 IDはまだ発行せず、公開データのみ取得します
+        setFullUserId("");
+        setDisplayId("");
+        setIsAdmin(false);
+        setPartySize(null); // 入力モーダルを表示させる
+        setAcquiredBadgeIds([]);
+
+        const allBadges = await BadgeService.getAllBadges();
+        setBadges(allBadges);
       }
-
-      // 4. 獲得済みバッジの整理
-      const myAcquiredIds = acquiredRows.map((r) => r.badge_id);
-      setAcquiredBadgeIds(myAcquiredIds);
-
-      // 5. バッジの並び替え（獲得したものは古い順、未獲得はインデックス順）
-      const acquisitionMap = new Map(
-        acquiredRows.map((r) => [r.badge_id, r.acquired_at]),
-      );
-      const sortedBadges = [...allBadges].sort((a, b) => {
-        const tA = acquisitionMap.get(a.id);
-        const tB = acquisitionMap.get(b.id);
-        if (tA && tB) return new Date(tA).getTime() - new Date(tB).getTime();
-        if (tA) return -1;
-        if (tB) return 1;
-        return a.target_index - b.target_index;
-      });
-      setBadges(sortedBadges);
     } catch (error) {
       console.error("❌ ロード中にエラーが発生しました:", error);
     } finally {
@@ -89,17 +123,36 @@ export const useHome = () => {
 
   /**
    * --- 【第2章：ユーザー情報の更新】 ---
+   * 💡 ここで初めてユーザーIDが発行され、DBに保存されます
    */
   const updatePartySize = async (size: number) => {
-    if (!fullUserId) return;
-    setPartySize(size);
-    const ok = await BadgeService.updateProfile(fullUserId, {
-      party_size: size,
-    });
-    if (ok) {
-      await loadData(); // 保存が成功したらデータを再ロード
+    try {
+      setSyncing(true);
+
+      // 1. このタイミングで初めて匿名サインインを実行（ID発行）
+      const user = await signInAnonymously();
+      if (!user) throw new Error("Sign-in failed");
+
+      const userId = user.id;
+      setFullUserId(userId);
+      setDisplayId(userId);
+
+      // 2. 人数とプロフィールの保存
+      setPartySize(size);
+      const ok = await BadgeService.updateProfile(userId, {
+        party_size: size,
+      });
+
+      if (ok) {
+        await loadData(); // 最新状態に更新
+      }
+      return ok;
+    } catch (error) {
+      console.error("❌ 登録エラー:", error);
+      return false;
+    } finally {
+      setSyncing(false);
     }
-    return ok;
   };
 
   /**
@@ -145,8 +198,9 @@ export const useHome = () => {
     acquiredBadgeIds,
     syncing,
     fullUserId,
+    displayId, // 💡 追加
     partySize,
-    showPartyInput: partySize === null,
+    showPartyInput: partySize === null && !isAdmin, // 💡 管理者の場合は表示しない
     cameraPermission,
     isAcquired,
     // カメラ権限をリクエストする関数

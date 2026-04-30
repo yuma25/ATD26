@@ -17,6 +17,8 @@ import { calculateProgress } from "../../backend/lib/logic";
 import { useScrollManager } from "../../hooks/useScrollManager";
 import { FinalLogModal } from "../../components/journal/FinalLogModal";
 
+import { useRouter } from "next/navigation"; // 💡 追加
+
 /**
  * 【ホーム画面（冒険者の手記）】
  * アプリのメイン画面です。標本の一覧表示、進捗状況の確認、
@@ -27,17 +29,21 @@ export default function Home() {
   const {
     badges, // 標本データの一覧
     syncing, // 同期中フラグ
-    fullUserId, // ユーザーの一意識別子
+    fullUserId, // 内部処理用ID
+    displayId, // 💡 表示用ID
     partySize, // 来場人数
     showPartyInput, // 人数入力モーダルの表示フラグ
     cameraPermission, // カメラ権限の状態
-    isAcquired, // 指定したIDの標本を獲得済みか判定する関数
+    isAcquired, // 指定したIDの標本獲得済みか判定する関数
     requestCameraPermission, // カメラ権限をリクエストする関数
     updatePartySize, // 人数を更新する関数
   } = useHome();
 
   const { saveScroll, restoreScroll } = useScrollManager(); // スクロール位置の管理
+  const router = useRouter(); // 💡 画面遷移のために追加
+
   const [showFinalLog, setShowFinalLog] = useState(false); // コンプリート記念モーダルの表示管理
+  const [inputValue, setInputValue] = useState("1"); // 💡 人数入力用の状態
 
   // --- 【第1章：進捗状況の計算】 ---
   // 1. 獲得済みの標本数をカウントします
@@ -93,20 +99,30 @@ export default function Home() {
       <header className="fixed top-0 left-0 right-0 z-[100] bg-[#e8e2d2]/90 backdrop-blur-md px-4 sm:px-8 py-6 sm:py-10 flex items-center justify-between border-b border-[#3e2f28]/10 shadow-sm">
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-2 sm:gap-3">
-            <Compass
-              size={20}
-              className="text-[#3e2f28]/60 flex-shrink-0"
-              strokeWidth={1.5}
-            />
+            {/* 管理者ログイン画面への入り口（下手に隠さず、アイコンとして配置） */}
+            <button
+              onClick={() => router.push("/admin/login")}
+              className="focus:outline-none active:scale-95 transition-transform group relative"
+              title="管理者ログイン"
+            >
+              <Compass
+                size={20}
+                className="text-[#3e2f28]/60 flex-shrink-0 group-hover:text-[#3e2f28]"
+                strokeWidth={1.5}
+              />
+              <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[8px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                ADMIN
+              </span>
+            </button>
             <h1 className="text-lg sm:text-2xl font-bold tracking-tight italic whitespace-nowrap">
               ATD26_SCIENCE-ART
             </h1>
           </div>
           <div className="pl-7 sm:pl-9 flex items-center gap-3 text-[#3e2f28]/60">
-            {/* ユーザーIDの表示 */}
-            {fullUserId && (
+            {/* 表示用IDの表示（管理者の場合は専用形式） */}
+            {displayId && (
               <p className="font-mono text-[7px] sm:text-[10px] font-bold tracking-tight opacity-70 break-all leading-tight max-w-[180px] sm:max-w-none">
-                ID: {fullUserId}
+                ID: {displayId}
               </p>
             )}
             {/* 人数情報の表示 */}
@@ -220,6 +236,7 @@ export default function Home() {
       />
 
       {/* 初回来場時の人数入力モーダル */}
+      {/* --- 【第4章：来場確認モーダル（自由入力版）】 --- */}
       <AnimatePresence>
         {showPartyInput && (
           <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6">
@@ -243,26 +260,52 @@ export default function Home() {
               <p className="text-[11px] font-bold text-[#3e2f28]/60 mb-8">
                 この端末で何名分の来場を登録しますか？
               </p>
-              <div className="bg-[#3e2f28]/5 p-4 mb-8 text-left border-l-2 border-[#3e2f28]/20">
-                <div className="text-[10px] text-[#3e2f28]/70 font-bold">
-                  【分担入力のお願い】
+
+              <div className="space-y-8">
+                {/* 💡 自由入力フォーム：手記に合うアナログなデザイン */}
+                <div className="relative group">
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    className="w-full bg-[#3e2f28]/5 border-2 border-[#3e2f28]/20 rounded-none py-6 text-center font-mono font-bold text-4xl focus:border-[#3e2f28] focus:bg-white transition-all outline-none"
+                    placeholder="1"
+                    autoFocus
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-[#3e2f28]/40 group-focus-within:text-[#3e2f28]">
+                    名
+                  </div>
                 </div>
-                <p className="text-[10px] text-[#3e2f28]/70 mt-1 opacity-80">
-                  グループで複数台のスマホをご利用の場合は、全員の合計が正しくなるように分担して入力してください。
-                </p>
-              </div>
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                {[1, 2, 3, 4, 5, 6].map((num) => (
-                  <button
-                    key={num}
-                    onClick={() => {
+
+                <div className="bg-[#3e2f28]/5 p-4 text-left border-l-2 border-[#3e2f28]/20">
+                  <p className="text-[10px] text-[#3e2f28]/70 font-bold leading-relaxed">
+                    グループで複数台のスマホをご利用の場合は、全員の合計が正しくなるように分担して入力してください。
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const num = parseInt(inputValue);
+                    if (!isNaN(num) && num > 0) {
                       void updatePartySize(num);
-                    }}
-                    className="py-4 border border-[#3e2f28]/10 hover:bg-[#3e2f28] hover:text-white transition-all font-mono font-bold text-lg"
+                    }
+                  }}
+                  className="w-full bg-[#3e2f28] text-[#e8e2d2] py-5 font-black uppercase tracking-[0.3em] hover:bg-[#523f35] transition-colors shadow-lg active:scale-[0.98]"
+                >
+                  記録を開始する
+                </button>
+
+                {/* 💡 管理者用エントリポイント：控えめなリンクとして配置 */}
+                <div className="pt-4 border-t border-[#3e2f28]/10">
+                  <button
+                    onClick={() => router.push("/admin/login")}
+                    className="text-[9px] font-bold text-[#3e2f28]/30 hover:text-[#3e2f28]/60 transition-colors uppercase tracking-[0.2em]"
                   >
-                    {num === 6 ? "5+" : num}
+                    — Administrator Access —
                   </button>
-                ))}
+                </div>
               </div>
             </motion.div>
           </div>
