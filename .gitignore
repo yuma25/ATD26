@@ -55,7 +55,7 @@ dist/
 dist/
 
 # Serverless directories
-.serverless/
+.less/
 
 # FuseBox cache
 .fusebox/
@@ -138,3 +138,11 @@ docs/system-design-reference.md
 
 # Optional v8 coverage directory
 node_modules/.cache/
+
+# プロジェクト固有の除外設定
+scripts/database/
+
+# AR_dataset配下の画像以外のファイルを管理から外す
+AR_dataset/**/*
+!AR_dataset/**/*.jpg
+!AR_dataset/**/*.JPG
