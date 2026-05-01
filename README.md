@@ -16,6 +16,7 @@ AR（拡張現実）技術を用いた標本収集・管理アプリケーショ
 ### Backend / Infrastructure
 
 - **BaaS**: Supabase (PostgreSQL / Auth / Storage)
+- **Cache**: Redis (Upstash) - 統計データの高速集計に使用
 - **Data Validation**: Zod
 - **Data Fetching**: SWR (Stale-While-Revalidate)
 
@@ -23,7 +24,7 @@ AR（拡張現実）技術を用いた標本収集・管理アプリケーショ
 
 - **Linter/Formatter**: ESLint, Prettier
 - **Testing**: Vitest
-- **Commit**: Commitlint, Lefthook
+- **Commit**: Commitlint, Lefthook (Pre-commit hook)
 
 ---
 
@@ -32,23 +33,24 @@ AR（拡張現実）技術を用いた標本収集・管理アプリケーショ
 詳細なシステム設計については、以下の各仕様書を参照してください。
 
 - [🏛️ アーキテクチャ設計書](./docs/ARCHITECTURE.md)
-  - システム構成、レイヤー責務、技術的選定根拠
+  - 3層構造、レンダリング戦略、キャッシュフロー、技術選定根拠
 - [🔌 API・サービス仕様書](./docs/API.md)
-  - エンドポイント定義、レスポンス形式、エラーハンドリング、冪等性設計
+  - 標準レスポンス、認証、エラーコード、冪等性設計
 - [🗄️ データベース設計書](./docs/DATABASE.md)
-  - テーブル定義、リレーション、インデックス戦略、整合性制約
+  - テーブル定義、複合ユニーク制約、インデックス戦略、Redisキャッシュ詳細
 
 ---
 
 ## 📂 プロジェクト構成 (Monorepo)
 
-本プロジェクトは `pnpm workspaces` を用いたモノレポ構成を採用しており、フロントエンドとバックエンドの責務を物理的に分離しています。
+本プロジェクトは `pnpm workspaces` を採用し、ロジック層を独立したパッケージとして管理しています。
 
 ```text
 .
-├── backend/         # @app/backend パッケージ (ビジネスロジック、型定義、共通ライブラリ)
+├── backend/         # @app/backend パッケージ (ビジネスロジック、型定義)
 ├── frontend/        # Next.js プロジェクト (UIページ、APIルート)
-├── docs/            # 設計仕様書 (ARCHITECTURE, API, DATABASE)
+│   └── __tests__/   # テストコード (Vitest)
+├── docs/            # 設計仕様書一式
 ├── AR_dataset/      # AR素材のマスターデータ
 ├── scripts/         # 開発支援スクリプト
 └── pnpm-workspace.yaml
@@ -60,7 +62,7 @@ AR（拡張現実）技術を用いた標本収集・管理アプリケーショ
 
 ### 1. 依存関係のインストール
 
-プロジェクトルートで実行してください。ワークスペース全体の依存関係がインストールされます。
+プロジェクトルートで実行してください。
 
 ```bash
 pnpm install
@@ -68,25 +70,28 @@ pnpm install
 
 ### 2. 環境変数の設定
 
-`frontend/` ディレクトリ内に `.env.local` を作成してください。
+`frontend/.env.local` を作成し、必要な値を入力してください。
+詳細は `frontend/.env.local.example` を参照してください。
 
 ```bash
-cp .env.local.example frontend/.env.local
+cp frontend/.env.local.example frontend/.env.local
 ```
 
 ### 3. 開発サーバーの起動
 
+ルートディレクトリで実行可能です。
+
 ```bash
-pnpm --filter frontend dev
+pnpm dev
 ```
 
 ---
 
 ## ✅ 開発ガイドライン
 
-- **ビルド確認**: コミット前に必ず `pnpm run build` が通ることを確認してください。
-- **型安全性**: `any` の使用を避け、`backend/types` で定義されたスキーマを優先してください。
-- **コミットメッセージ**: Conventional Commits に準拠してください。
+- **ビルド確認**: コミット前に必ず `pnpm build` が通ることを確認してください。
+- **型安全性**: `any` の使用は原則禁止です。`backend/types` のスキーマを使用してください。
+- **ドキュメント更新**: 仕様変更を伴う場合は、必ず `docs/` 内の各仕様書も更新してください。
 
 ---
 
