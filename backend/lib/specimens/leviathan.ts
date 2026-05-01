@@ -8,4 +8,9 @@ export const leviathan: SpecimenSettings = {
     "property: position; to: 0 0 0.1; dur: 8000; easing: easeInOutSine; dir: alternate; loop: true",
   minScale: 0.005,
   maxScale: 0.02,
+
+  // リリース時は巨大なサイズで、ゆっくりと回遊させる
+  releaseScale: "0.06 0.06 0.06",
+  releaseOuterAnimation:
+    "property: rotation; to: 0 360 0; dur: 60000; easing: linear; loop: true",
 };

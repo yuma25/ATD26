@@ -8,4 +8,7 @@ export const greatWave: SpecimenSettings = {
     "property: rotation; from: 80 -10 -5; to: 100 10 5; dur: 3000; easing: easeInOutSine; dir: alternate; loop: true",
   minScale: 0.003,
   maxScale: 0.01,
+
+  // リリース時は波しぶきがダイナミックに見えるサイズに
+  releaseScale: "0.02 0.02 0.02",
 };

@@ -188,6 +188,13 @@ function ReleaseContent() {
     ) {
       const settings = getSpecimenSettings(name);
 
+      // リリース用の設定を優先的に取得、なければ標準設定を使用
+      const finalScale = settings.releaseScale || settings.scale;
+      const finalOuterAnim =
+        settings.releaseOuterAnimation || settings.outerAnimation;
+      const finalInnerAnim =
+        settings.releaseInnerAnimation || settings.innerAnimation;
+
       // ARシーン（A-Frame）をHTMLとして構築し、注入します
       arContainerRef.current.innerHTML = `
         <a-scene 
@@ -209,9 +216,9 @@ function ReleaseContent() {
           <a-light type="directional" intensity="1.0" position="1 2 1"></a-light>
           
           <a-entity position="0 1.6 -1.2">
-            <a-entity animation="${settings.outerAnimation}">
-              <a-entity animation="${settings.innerAnimation}">
-                <a-gltf-model id="target-model" src="#m" scale="${settings.scale}" animation-mixer="clip: *; loop: repeat; timeScale: 1.0"></a-gltf-model>
+            <a-entity animation="${finalOuterAnim}">
+              <a-entity animation="${finalInnerAnim}">
+                <a-gltf-model id="target-model" src="#m" scale="${finalScale}" animation-mixer="clip: *; loop: repeat; timeScale: 1.0"></a-gltf-model>
               </a-entity>
             </a-entity>
           </a-entity>

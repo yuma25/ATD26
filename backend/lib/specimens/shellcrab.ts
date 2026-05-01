@@ -8,4 +8,7 @@ export const shellcrab: SpecimenSettings = {
     "property: position; to: 0 0.02 0; dur: 3000; easing: easeInOutQuad; dir: alternate; loop: true",
   minScale: 0.01,
   maxScale: 0.03,
+
+  // リリース時は少し大きめに
+  releaseScale: "0.04 0.04 0.04",
 };
