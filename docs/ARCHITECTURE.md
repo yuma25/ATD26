@@ -20,6 +20,7 @@ graph TD
         Hooks["カスタムフック<br/>(SWR / 状態管理)"]
         BS["BadgeService<br/>(環境抽象化 / データ変換)"]
         CS["CacheService<br/>(Redis 連携)"]
+        Spec["標本個別設定<br/>(Specimens)"]
     end
 
     subgraph Data ["データ永続化レイヤー (Supabase / Redis)"]
@@ -39,6 +40,7 @@ graph TD
     CS -- 3. Write Cache --> Cache
     BS -- Server-side (Direct) --> DB
     BS -.-> Auth
+    AR -.-> Spec
 ```
 
 ---
@@ -76,6 +78,7 @@ graph TD
 - データの取得戦略（キャッシュ優先か DB 優先か）の決定。
 - **BadgeService**: 環境に応じた最適な通信経路を選択。
 - **CacheService**: Redis への GET/SET を抽象化。
+- **標本詳細設定 (Specimens)**: `backend/lib/specimens/` 下に各 3D モデル固有のパラメータ（スケール、アニメーション、表示ロジック）を個別のファイルとして分離。
 
 ### 📂 データ・インフラ層 (Data)
 

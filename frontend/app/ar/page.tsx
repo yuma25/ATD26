@@ -127,17 +127,21 @@ export default function ARPage() {
       <a-scene 
         mindar-image="imageTargetSrc: /targets.mind?v=${v}; autoStart: false; uiLoading: no; uiScanning: no; maxTrack: 1; filterMinCF: 0.001; filterBeta: 10; missTolerance: 0;" 
         color-space="sRGB" 
-        renderer="colorManagement: true, exposure: 1.2, alpha: true, antialias: true" 
+        renderer="exposure: 1.0; alpha: true; antialias: true;" 
         vr-mode-ui="enabled: false" 
         device-orientation-permission-ui="enabled: false" 
         loading-screen="enabled: false" 
         embedded 
         style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;"
       >
-        <a-assets>
+        <a-assets timeout="10000">
           ${allBadges.map((b) => `<a-asset-item id="model-item-${b.target_index}" src="${b.model_url}"></a-asset-item>`).join("")}
         </a-assets>
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <!-- 物理ベースライティングへの対応 -->
+        <a-light type="ambient" intensity="0.5"></a-light>
+        <a-light type="directional" intensity="0.8" position="1 2 1"></a-light>
 
         ${allBadges
           .map((badge) => {
@@ -149,6 +153,7 @@ export default function ARPage() {
                 <a-entity animation="${settings.outerAnimation}">
                   <a-entity animation="${settings.innerAnimation}">
                     <a-gltf-model 
+                      class="ar-model"
                       id="model-el-${physicalIndex}"
                       src="#model-item-${badge.target_index}" 
                       scale="${settings.scale}" 
@@ -204,7 +209,7 @@ export default function ARPage() {
         },
       });
 
-      document.querySelectorAll("a-gltf-model").forEach((el) => {
+      document.querySelectorAll(".ar-model").forEach((el) => {
         el.setAttribute("auto-scale", "");
       });
     };
@@ -212,8 +217,11 @@ export default function ARPage() {
     /**
      * ARエンジンの起動
      */
+    let isBooted = false;
     const boot = () => {
+      if (isBooted) return;
       if (sceneEl.systems?.["mindar-image-system"]) {
+        isBooted = true;
         sceneEl.systems["mindar-image-system"].start();
         setupListeners(); // マーカー認識のリスナーを設定
         setupAutoScaling(); // 自動サイズ調整を設定
@@ -224,8 +232,24 @@ export default function ARPage() {
       }
     };
 
-    if (sceneEl.hasLoaded) boot();
-    else sceneEl.addEventListener("loaded", boot);
+    // 全てのモデルの準備が整うのを待つ
+    const models = sceneEl.querySelectorAll(".ar-model");
+    let loadedCount = 0;
+    if (models.length > 0) {
+      models.forEach((m) => {
+        m.addEventListener("model-loaded", () => {
+          loadedCount++;
+          if (loadedCount === models.length) boot();
+        });
+      });
+      // フォールバック（ネットワーク遅延などで model-loaded が遅れた場合）
+      setTimeout(() => {
+        boot();
+      }, 8000);
+    } else {
+      if (sceneEl.hasLoaded) boot();
+      else sceneEl.addEventListener("loaded", boot);
+    }
   }, [status, ready, isLoaded, allBadges, setupListeners]);
 
   return (

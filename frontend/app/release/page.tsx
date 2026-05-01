@@ -192,21 +192,26 @@ function ReleaseContent() {
       arContainerRef.current.innerHTML = `
         <a-scene 
           embedded 
-          renderer="colorManagement: true, exposure: 1.2, alpha: true, preserveDrawingBuffer: true, antialias: true"
+          renderer="exposure: 1.0; alpha: true; preserveDrawingBuffer: true; antialias: true;"
           vr-mode-ui="enabled: false"
           device-orientation-permission-ui="enabled: false"
           loading-screen="enabled: false"
           style="width: 100%; height: 100%;"
         >
-          <a-assets><a-asset-item id="m" src="${modelUrl}"></a-asset-item></a-assets>
-          <a-entity camera look-controls="pointerLockEnabled: false" position="0 1.6 0"></a-entity>
-          <a-light type="ambient" intensity="1.5"></a-light>
-          <a-light type="directional" intensity="2.0" position="1 2 1"></a-light>
+          <a-assets timeout="10000">
+            <a-asset-item id="m" src="${modelUrl}"></a-asset-item>
+          </a-assets>
           
-          <a-entity position="0 1.6 -2.5">
+          <a-entity camera look-controls="pointerLockEnabled: false" position="0 1.6 0"></a-entity>
+          
+          <!-- ライティングの最適化 -->
+          <a-light type="ambient" intensity="0.7"></a-light>
+          <a-light type="directional" intensity="1.0" position="1 2 1"></a-light>
+          
+          <a-entity position="0 1.6 -1.2">
             <a-entity animation="${settings.outerAnimation}">
               <a-entity animation="${settings.innerAnimation}">
-                <a-gltf-model src="#m" scale="${settings.scale}" animation-mixer="clip: *; loop: repeat; timeScale: 1.0"></a-gltf-model>
+                <a-gltf-model id="target-model" src="#m" scale="${settings.scale}" animation-mixer="clip: *; loop: repeat; timeScale: 1.0"></a-gltf-model>
               </a-entity>
             </a-entity>
           </a-entity>
@@ -218,14 +223,29 @@ function ReleaseContent() {
       const sceneEl = arContainerRef.current.querySelector(
         "a-scene",
       ) as ASceneElement;
+      const modelEl = sceneEl.querySelector("#target-model");
+
+      let isBooted = false;
       const boot = () => {
+        if (isBooted) return;
+        isBooted = true;
         setupCameraBackground(); // カメラ映像を開始
         setStatus("started");
+        // 描画の整合性を整えるためのリサイズイベント
         setTimeout(() => window.dispatchEvent(new Event("resize")), 300);
       };
 
-      if (sceneEl.hasLoaded) boot();
-      else sceneEl.addEventListener("loaded", boot);
+      // モデルの読み込み完了を待ってから開始する（最も確実なトリガー）
+      if (modelEl) {
+        modelEl.addEventListener("model-loaded", boot);
+        // 念のためのフォールバック
+        setTimeout(() => {
+          boot();
+        }, 5000);
+      } else {
+        if (sceneEl.hasLoaded) boot();
+        else sceneEl.addEventListener("loaded", boot);
+      }
     }
   }, [status, modelUrl, name]);
 
