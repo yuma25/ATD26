@@ -188,6 +188,21 @@ export const useHome = () => {
    * --- イベントとライフサイクル ---
    */
   useEffect(() => {
+    if (!supabase) return;
+
+    // 💡 認証状態の変化を監視（トークン更新、ログイン、ログアウト等）
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      console.log(`🔐 認証イベント検知: ${event}`);
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        void loadData(); // 最新状況を再ロード
+      }
+      if (event === "SIGNED_OUT") {
+        void loadData(); // ゲスト状態へリセット
+      }
+    });
+
     const controller = new AbortController();
 
     // 初回ロード（非同期で実行）
@@ -203,6 +218,7 @@ export const useHome = () => {
 
     return () => {
       clearTimeout(timer);
+      subscription.unsubscribe(); // 💡 リスナーを解除
       controller.abort(); // 💡 画面を離れる時に通信をすべて止める
       window.removeEventListener("focus", handleFocus);
     };
