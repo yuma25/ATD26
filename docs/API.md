@@ -8,61 +8,55 @@
 
 ## 1. システム全体図
 
-### ユースケース図 (Use Case Diagram)
+### ユースケース (Use Case)
 
 ユーザー（来場者）と管理者がシステムを通じてどのようなアクションを行うかを定義します。
 
 ```mermaid
-useCaseDiagram
-    actor "来場者 (Visitor)" as U
-    actor "管理者 (Admin)" as A
-    
-    package "ATD26 SCIENCE-ART System" {
-        usecase "作品をスキャンして発見する" as UC1
-        usecase "3DモデルをARで観察・撮影する" as UC2
-        usecase "獲得した作品を図録で閲覧する" as UC3
-        usecase "来場人数を登録する" as UC4
-        usecase "景品と交換する" as UC5
-        usecase "全体の統計データを閲覧する" as UC6
-    }
-    
-    U --> UC1
-    U --> UC2
-    U --> UC3
-    U --> UC4
-    U --> UC5
-    A --> UC6
+graph TD
+    %% アクター
+    Visitor((来場者))
+    Admin((管理者))
+
+    subgraph "ATD26 SCIENCE-ART システム"
+        UC1[作品をスキャンして発見する]
+        UC2[3DモデルをARで観察・撮影する]
+        UC3[獲得した作品を図録で閲覧する]
+        UC4[来場人数を登録する]
+        UC5[景品と交換する]
+        UC6[全体の統計データを閲覧する]
+    end
+
+    Visitor --> UC1
+    Visitor --> UC2
+    Visitor --> UC3
+    Visitor --> UC4
+    Visitor --> UC5
+    Admin --> UC6
 ```
 
-### アクティビティ図 (Activity Diagram)
+### アクティビティフロー (Activity Flow)
 
 主要な機能である「作品の発見から獲得まで」の論理フローです。
 
 ```mermaid
-activityDiagram
-    start
-    :ARカメラを起動;
-    repeat
-        :絵画（マーカー）をスキャン;
-    backward:カメラを向ける;
-    repeat while (マーカーを認識したか?) is (No)
+graph TD
+    Start([開始]) --> Scan[絵画をスキャン]
+    Scan --> Recognized{認識成功?}
+    Recognized -- No --> Scan
+    Recognized -- Yes --> ShowModel[3Dモデルを表示]
     
-    :3Dモデルを顕現（表示）;
-    :解析（ゲージ蓄積）開始;
+    ShowModel --> CheckAcquired{既に獲得済み?}
     
-    if (既に獲得済みか?) then (Yes)
-        :「データ取得済み」を表示;
-    else (No)
-        while (ゲージ < 100%?) is (Yes)
-            :解析を継続;
-        endwhile
-        :獲得アニメーション表示;
-        :BadgeService.acquireBadge() 実行;
-        :データベースに記録;
-    endif
+    CheckAcquired -- Yes --> ShowMsg[「データ取得済み」を表示]
+    CheckAcquired -- No --> Progress[解析中... ゲージ蓄積]
     
-    :詳細情報の閲覧・撮影が可能に;
-    stop
+    Progress --> Done{100% 完了?}
+    Done -- No --> Progress
+    Done -- Yes --> Save[BadgeService で記録保存]
+    
+    ShowMsg --> End([詳細表示・撮影])
+    Save --> End
 ```
 
 ---
@@ -83,8 +77,8 @@ Next.js の API Routes (`frontend/app/api/v1/`) で実装されているエン�
 | `/api/v1/profile/update` | `POST` | 来場人数や交換フラグの更新 | 要 (匿名) | なし |
 | `/api/v1/admin/stats` | `GET` | 管理者用統計データ（集計値） | 要 (Admin) | L2 (Redis) |
 
-### 2.2 外部サービス API (BaaS / SDK)
-直接またはライブラリを介して通信している外部 API です。
+### 2.2 外部サービス・システム API
+直接またはライブラリを介して通信している外部連携です。
 
 | サービス | 用途 | 備考 |
 | :--- | :--- | :--- |
@@ -92,10 +86,21 @@ Next.js の API Routes (`frontend/app/api/v1/`) で実装されているエン�
 | **Supabase Database** | PostgreSQL への直接クエリ（サーバーサイド） | `PostgREST` |
 | **Upstash Redis** | 統計データ、レートリミット用キャッシュ | REST 経由 |
 | **Web Share API** | 撮影画像の OS 標準共有機能 | ブラウザネイティブ API |
+| **Vercel Edge/CDN** | プログラムや 3D モデルの高速配信 | インフラレベル (L3) |
 
 ---
 
-## 3. 共通レスポンス形式 (Standard Response)
+## 3. キャッシュ戦略の定義
+
+ドキュメント内で使用されているキャッシュの階層定義です。
+
+- **L1 (Client Cache)**: ブラウザ上の SWR キャッシュ。画面遷移を高速化します。
+- **L2 (Server Cache)**: Redis によるサーバーサイドキャッシュ。複雑な集計の負荷を下げます。
+- **L3 (Edge Cache)**: CDN (Vercel) による静的ファイルのキャッシュ。地理的に近い場所から配信されます。
+
+---
+
+## 4. 共通レスポンス形式 (Standard Response)
 
 全ての内部 API は一貫した JSON 構造を返します。
 
@@ -117,11 +122,3 @@ Next.js の API Routes (`frontend/app/api/v1/`) で実装されているエン�
   }
 }
 ```
-
----
-
-## 4. セキュリティと認可
-
-- **匿名認証 (Anonymous Auth)**: Supabase を使用。ユーザーは登録不要で UUID を付与されます。
-- **RLS (Row Level Security)**: データベース側で「自分のデータのみ読み書き可能」にする制限をかけています。
-- **Service Role**: 管理者用統計 API 等では、制限を回避できる強力なキーをサーバーサイドでのみ使用します。

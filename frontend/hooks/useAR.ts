@@ -381,7 +381,7 @@ export const useAR = () => {
                 await navigator.share({
                   files: [file],
                   title: "標本の観察記録",
-                  text: "ARで標本を撮影しました！",
+                  text: "https://aichitech.day/",
                 });
                 console.log("📸 共有メニューを表示しました");
               } catch (shareError) {
