@@ -1,19 +1,17 @@
 import { SpecimenSettings } from "./types";
 
 export const antiqueSword: SpecimenSettings = {
-  // モデルの大きさ
-  scale: "6.0 6.0 6.0",
-  // モデル의 重心補正（絵画の表面に密着させ、位置を少し下げる）
-  position: "0 -0.4 0.01",
-  // モデルの向き
+  // 回転時に剣先が見切れないよう、全体をコンパクトに縮小
+  scale: "0.15 0.15 0.15",
+  // 絵画の少し下側を起点にし、表面にほど近い位置（Z: 0.05）に配置
+  position: "0 -0.2 0.05",
   rotation: "0 0 0",
-  // 全体の回転アニメーション
+  // 全体のゆっくりとした回転アニメーションはそのまま維持
   outerAnimation:
     "property: rotation; to: 0 360 0; dur: 20000; easing: linear; loop: true",
-  // モデル自体の浮遊・揺れアニメーション（低い位置と密着感を維持）
+  // 枠外へ出ないよう、上下（Y軸）の浮遊幅を小さく調整し、手前（Z軸）への飛び出しも抑える
   innerAnimation:
-    "property: position; to: 0 0.1 0.01; dur: 10000; easing: easeInOutSine; dir: alternate; loop: true",
-  // AR空間でのピンチ操作による最小・最大サイズ制限
+    "property: position; to: 0 -0.05 0.08; dur: 10000; easing: easeInOutSine; dir: alternate; loop: true",
   minScale: 0.1,
   maxScale: 3.0,
 };

@@ -1,18 +1,15 @@
 import { SpecimenSettings } from "./types";
 
 export const greatWave: SpecimenSettings = {
-  // モデルの大きさ
-  scale: "6.0 6.0 6.0",
-  // モデルの重心補正（絵画の表面に密着させ、位置を少し下げる）
-  position: "0 -0.4 0.01",
-  // モデルの向き
+  // 高さが絵画の縦幅に収まるようスケールダウン
+  scale: "0.18 0.2 0.12",
+  // 絵画の下端付近を起点にする
+  position: "0 -0.3 0.05",
   rotation: "0 45 0",
-  // 全体の回転アニメーション（停止）
   outerAnimation: "",
-  // モデル自体の揺れアニメーション
+  // ダイナミックさは残しつつ、枠から出ない程度の回転揺れ
   innerAnimation:
-    "property: rotation; from: -10 40 -10; to: 15 50 10; dur: 3000; easing: easeInOutSine; dir: alternate; loop: true",
-  // AR空間でのピンチ操作による最小・最大サイズ制限
+    "property: rotation; from: -5 40 -5; to: 5 50 5; dur: 3000; easing: easeInOutSine; dir: alternate; loop: true",
   minScale: 0.1,
   maxScale: 2.5,
 };
