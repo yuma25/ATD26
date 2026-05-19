@@ -12,5 +12,6 @@ export const moonJelly: SpecimenSettings = {
   // 手前ではなく、上下（Y軸）メインのゆらぎに変更（速度と幅をアップ）
   innerAnimation:
     "property: position; to: 0.05 0.15 0.15; dur: 5000; easing: easeInOutSine; dir: alternate; loop: true",
+  minScale: 0.1,
   maxScale: 4.0,
 };
