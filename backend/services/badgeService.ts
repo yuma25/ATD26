@@ -11,7 +11,7 @@ export const BadgeService = {
    * --- すべての標本情報を取得 ---
    * データベースに登録されているすべての標本データを取得します。
    * クライアント側（ブラウザ）では内部API経由、サーバー側では直接DBから取得します。
-   * 
+   *
    * @param {AbortSignal} [signal] - リクエストを中断するためのシグナル
    * @returns {Promise<Badge[]>} 標本データの配列。エラー時は空配列を返します。
    */
@@ -44,7 +44,7 @@ export const BadgeService = {
       .from("badges")
       .select("id, name, artist, model_url, image_url, target_index")
       .order("target_index");
-    
+
     if (error) {
       console.error("[BadgeService/Server] DB取得エラー:", error.message);
       return [];
@@ -56,7 +56,7 @@ export const BadgeService = {
   /**
    * --- ユーザープロフィールの取得 ---
    * 指定されたユーザーIDに対応するプロフィール情報（パーティ人数、景品交換フラグなど）を取得します。
-   * 
+   *
    * @param {string} userId - 取得対象のユーザーID（UUID）
    * @param {AbortSignal} [signal] - リクエストを中断するためのシグナル
    * @returns {Promise<any | null>} プロフィールデータ。見つからない場合やエラー時は null を返します。
@@ -95,7 +95,7 @@ export const BadgeService = {
    * --- 標本の獲得を記録 ---
    * ユーザーが標本を発見したことをデータベースに記録します。
    * プロフィールが存在しない場合は自動的に作成します。
-   * 
+   *
    * @param {string} userId - 獲得したユーザーのID
    * @param {string} badgeId - 獲得対象の標本ID
    * @returns {Promise<{data: UserBadge | null, error: any}>} 登録されたデータ、またはエラーオブジェクト
@@ -157,7 +157,7 @@ export const BadgeService = {
   /**
    * --- 獲得済み標本リストを取得 ---
    * 指定されたユーザーがこれまでに獲得したすべての標本記録を取得します。
-   * 
+   *
    * @param {string} userId - 取得対象のユーザーID
    * @param {AbortSignal} [signal] - リクエストを中断するためのシグナル
    * @returns {Promise<UserBadge[]>} 獲得済み標本データの配列
@@ -204,7 +204,7 @@ export const BadgeService = {
    * --- 獲得済み標本のIDリストのみを取得 ---
    * ユーザーが獲得済みの標本IDを配列形式で取得します。
    * フロントエンドでの重複チェックや表示切り替えに利用します。
-   * 
+   *
    * @param {string} userId - 取得対象のユーザーID
    * @param {AbortSignal} [signal] - リクエストを中断するためのシグナル
    * @returns {Promise<string[]>} 獲得済み標本ID（文字列）の配列
@@ -220,7 +220,7 @@ export const BadgeService = {
   /**
    * --- プロフィールの更新 ---
    * ユーザーのプロフィール情報（パーティ人数や景品交換状況など）を更新します。
-   * 
+   *
    * @param {string} userId - 更新対象のユーザーID
    * @param {Object} updates - 更新内容
    * @param {number} [updates.party_size] - パーティ（グループ）の人数

@@ -89,10 +89,10 @@ sequenceDiagram
     DB-->>API: 獲得済みリスト
     API-->>Hook: 履歴データ (以後はキャッシュ利用)
     Hook-->>AR: ARエンジン起動準備完了
-    
+
     U->>AR: カメラを「よすが」に向ける
     AR->>Hook: マーカー検出イベント (targetFound)
-    
+
     alt 未獲得の場合
         Hook->>AR: プログレスバー(0→100%)表示
         Note over Hook: 100%到達で獲得処理
@@ -108,7 +108,6 @@ sequenceDiagram
 ```
 
 ---
-
 
 ## 6. ライティング設計方針
 
