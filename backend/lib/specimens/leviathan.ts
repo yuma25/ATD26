@@ -1,19 +1,17 @@
 import { SpecimenSettings } from "./types";
 
 export const leviathan: SpecimenSettings = {
-  // モデルの大きさ
-  scale: "7.0 7.0 7.0",
-  // モデルの重心補正（絵画の表面に密着させ、位置を少し下げる）
-  position: "0 -0.4 0.01",
-  // モデルの向き
+  // スケールを均一に 4.5 倍へ調整。巨大さを保ちつつ、AR空間での収まりを最適化します。
+  scale: "4.5 4.5 4.5",
+  // 中心から右(X)に離すことで、旋回半径を作ります
+  position: "1.2 -0.5 0",
+  // 90度倒して水平（よこ）にし、進行方向を向かせます
   rotation: "90 90 0",
-  // 全体の回転アニメーション
   outerAnimation:
-    "property: rotation; from: 90 90 0; to: 90 450 0; dur: 40000; easing: linear; loop: true",
-  // モデル自体の浮遊・揺れアニメーション（手前への突出を抑える）
+    "property: rotation; from: 0 0 0; to: 0 360 0; dur: 40000; easing: linear; loop: true",
+  // 枠外に出ない範囲での緩やかな上下運動
   innerAnimation:
-    "property: position; to: 0 0.1 0.05; dur: 15000; easing: easeInOutSine; dir: alternate; loop: true",
-  // AR空間でのピンチ操作による最小・最大サイズ制限
-  minScale: 0.2,
-  maxScale: 4.0,
+    "property: position; to: 0 -0.15 0.08; dur: 15000; easing: easeInOutSine; dir: alternate; loop: true",
+  minScale: 0.1,
+  maxScale: 3.0,
 };
