@@ -134,9 +134,6 @@ TECH_NOTES.example.md
 DEV_LOG.example.md
 GEMINI.example.md
 
-# 開発・運用支援スクリプト
-scripts/
-
 # 内部的な開発ドキュメントとプロンプト集（非公開）
 docs/AI_INSTRUCTIONS.md
 docs/PROMPTS/
