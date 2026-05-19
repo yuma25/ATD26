@@ -4,7 +4,7 @@ export const greatWave: SpecimenSettings = {
   // 高さが絵画の縦幅に収まるようスケールダウン (さらに2倍拡大: 1.8 2.0 1.2)
   scale: "1.8 2.0 1.2",
   // 絵画の下端付近を起点にする
-  position: "0 -0.5 0.05",
+  position: "0 -1.1 0.05",
   rotation: "0 45 0",
   outerAnimation: "",
   // ダイナミックさは残しつつ、枠から出ない程度の回転揺れ
