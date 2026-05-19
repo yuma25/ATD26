@@ -59,7 +59,7 @@ grant all on public.user_badges to anon, authenticated, service_role;
 -- 6. 初期データの投入
 insert into public.badges (name, artist, model_url, image_url, target_index)
 values
-  ('sample', 'sample', '/butterfly.glb', '/images/paintings/painting_0.jpg', 0),
+  ('自然に寄り添う者たち', '池田 咲花', '/butterfly.glb', '/images/paintings/painting_0.jpg', 0),
   ('お母さんの初水族館', '川越あけみ', '/whale.glb', '/images/paintings/painting_1.jpg', 1),
   ('ヤドカリ', '高山那月', '/shellcrab.glb', '/images/paintings/painting_2.jpg', 2),
   ('海底の置く', '可部谷清楓', '/sword.glb', '/images/paintings/painting_3.jpg', 3),
