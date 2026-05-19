@@ -1,8 +1,8 @@
 import { SpecimenSettings } from "./types";
 
 export const commonBlue: SpecimenSettings = {
-  // スケールを抑え、絵画の枠内に収まるサイズに
-  scale: "0.15 0.15 0.15",
+  // スケールを抑え、絵画の枠内に収まるサイズに (5倍拡大: 0.15 -> 0.75)
+  scale: "0.75 0.75 0.75",
   // 絵画の少し下、かつ表面（Z: 0.05）に配置
   position: "0 -0.15 0.05",
   rotation: "-15 20 0",
