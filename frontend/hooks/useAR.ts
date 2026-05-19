@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import useSWR from "swr";
 
-import { supabase, signInAnonymously } from "@backend/lib/supabase";
+import { supabase } from "@backend/lib/supabase";
 import { Badge } from "@backend/types";
 import { BadgeService } from "@backend/services/badgeService";
 
