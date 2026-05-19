@@ -1,8 +1,8 @@
 import { SpecimenSettings } from "./types";
 
 export const moonJelly: SpecimenSettings = {
-  // 空間を覆い尽くさない、上品なサイズに縮小 (5倍拡大: 1.0 1.0 0.75)
-  scale: "1.0 1.0 0.75",
+  // 空間を覆い尽くさない、上品なサイズに縮小 (さらに2倍拡大: 2.0 2.0 1.5)
+  scale: "2.0 2.0 1.5",
   // 絵画の表面付近（Z: 0.08）で浮遊させる
   position: "0 -0.1 0.08",
   rotation: "0 0 0",

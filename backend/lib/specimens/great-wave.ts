@@ -1,8 +1,8 @@
 import { SpecimenSettings } from "./types";
 
 export const greatWave: SpecimenSettings = {
-  // 高さが絵画の縦幅に収まるようスケールダウン (5倍拡大: 0.9 1.0 0.6)
-  scale: "0.9 1.0 0.6",
+  // 高さが絵画の縦幅に収まるようスケールダウン (さらに2倍拡大: 1.8 2.0 1.2)
+  scale: "1.8 2.0 1.2",
   // 絵画の下端付近を起点にする
   position: "0 -0.3 0.05",
   rotation: "0 45 0",

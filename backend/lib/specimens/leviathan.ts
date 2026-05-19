@@ -1,8 +1,8 @@
 import { SpecimenSettings } from "./types";
 
 export const leviathan: SpecimenSettings = {
-  // 絵画の幅に対して約25%程度の長さに縮小 (5倍拡大: 1.25 0.5 0.6)
-  scale: "1.25 0.5 0.6",
+  // 絵画の幅に対して約25%程度の長さに縮小 (さらに3倍拡大: 3.75 1.5 1.8)
+  scale: "3.75 1.5 1.8",
   // 絵画の少し下を泳がせ、手前への飛び出しを抑える（Z: 0.05）
   position: "0 -0.2 0.05",
   rotation: "90 90 0",

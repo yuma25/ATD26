@@ -1,8 +1,8 @@
 import { SpecimenSettings } from "./types";
 
 export const shellcrab: SpecimenSettings = {
-  // 全体的に小型化し、おさまりを良くする (5倍拡大: 0.75 0.5 0.6)
-  scale: "0.75 0.5 0.6",
+  // 全体的に小型化し、おさまりを良くする (さらに2倍拡大: 1.5 1.0 1.2)
+  scale: "1.5 1.0 1.2",
   // カメラに近づきすぎないよう Z軸を 0.05 まで後退
   position: "0 -0.25 0.05",
   rotation: "0 0 0",
