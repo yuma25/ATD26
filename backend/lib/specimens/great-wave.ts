@@ -4,7 +4,7 @@ export const greatWave: SpecimenSettings = {
   // モデルの大きさ
   scale: "4.5 4.5 4.5",
   // モデルの重心補正（絵画の表面に密着させ、位置を少し下げる）
-  position: "0 -0.4 0.01",
+  position: "0 -0.4 0.001",
   // モデルの向き
   rotation: "0 45 0",
   // 全体の回転アニメーション（停止）
