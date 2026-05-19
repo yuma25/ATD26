@@ -2,7 +2,7 @@ import { SpecimenSettings } from "./types";
 
 export const commonBlue: SpecimenSettings = {
   // モデルの大きさ
-  scale: "4.5 4.5 4.5",
+  scale: "7.0 7.0 7.0",
   // モデルの重心補正（絵画の表面に密着させ、位置を少し下げる）
   position: "0 -0.4 0.01",
   // モデルの向き [X軸(上下) Y軸(左右) Z軸(傾き)]
