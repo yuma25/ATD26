@@ -2,9 +2,9 @@ import { SpecimenSettings } from "./types";
 
 export const shellcrab: SpecimenSettings = {
   // モデルの大きさ
-  scale: "4.5 4.5 4.5",
+  scale: "6.0 6.0 6.0",
   // モデルの重心補正（絵画の表面に密着させ、位置を少し下げる）
-  position: "0 -0.4 0.001",
+  position: "0 -0.4 0.01",
   // モデルの向き
   rotation: "0 0 0",
   // 全体の回転アニメーション（停止）
