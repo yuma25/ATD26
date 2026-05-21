@@ -210,7 +210,12 @@ export default function ARPage() {
     else sceneEl.addEventListener("loaded", boot);
   }, [isSceneReady, isClient, isLoaded, allBadges, setupListeners]);
 
-  if (!isClient) return null;
+  // 💡 修正: 獲得済みのユニーク数を正確に計算するロジック
+  const getCurrentDisplayCount = () => {
+    if (!activeBadge) return acquiredBadgeIds.length;
+    // Set を使うことで、データの同期状況に関わらず「今の標本を含めた合計」を正確に出す
+    return new Set([...acquiredBadgeIds, activeBadge.id]).size;
+  };
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden select-none touch-none">
@@ -252,7 +257,7 @@ export default function ARPage() {
               <div className="w-full max-w-[280px] space-y-4">
                 <div className="flex justify-between items-end">
                   <span className="text-white text-[10px] font-black italic tracking-tighter">
-                    {activeBadge?.name} ({acquiredBadgeIds.length + 1} / {allBadges.length})
+                    {activeBadge?.name} ({getCurrentDisplayCount()} / {allBadges.length})
                   </span>
                   <span className="text-white font-mono text-[10px]">{progress}%</span>
                 </div>
@@ -278,7 +283,7 @@ export default function ARPage() {
               artistName={activeBadge.artist}
               allBadges={allBadges}
               acquiredBadgeIds={acquiredBadgeIds}
-              isLast={allBadges.length > 0 && acquiredBadgeIds.length === allBadges.length}
+              isLast={allBadges.length > 0 && getCurrentDisplayCount() === allBadges.length}
               isExchanged={isExchanged}
               onClose={() => setShowSuccess(false)}
             />

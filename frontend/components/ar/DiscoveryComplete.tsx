@@ -40,8 +40,13 @@ export const DiscoveryComplete = ({
   isLast = false,
   isExchanged = false,
 }: DiscoveryCompleteProps) => {
-  const currentCount = isLast ? allBadges.length : acquiredBadgeIds.length + 1;
   const totalCount = allBadges.length;
+  
+  // 💡 修正: 獲得数の誤差を修正
+  // すでに獲得済みリストに含まれている場合はそのままの数、含まれていない場合（新規獲得時）は +1 する
+  const currentBadgeId = allBadges.find(b => b.name === badgeName)?.id;
+  const isAlreadyInList = currentBadgeId && acquiredBadgeIds.includes(currentBadgeId);
+  const currentCount = isLast ? totalCount : (acquiredBadgeIds.length + (isAlreadyInList ? 0 : 1));
 
   /**
    * ホーム画面に戻り、自動的に引き換え画面を開くための処理
