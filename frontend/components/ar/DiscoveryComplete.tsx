@@ -4,7 +4,7 @@
  * モジュールのインポート
  */
 import { motion } from "framer-motion";
-import { Check, Ticket, Award, Sparkles } from "lucide-react";
+import { Check, Ticket, Award, Sparkles, ArrowRight } from "lucide-react";
 import type { Badge } from "@backend/types";
 
 /**
@@ -42,6 +42,19 @@ export const DiscoveryComplete = ({
 }: DiscoveryCompleteProps) => {
   const currentCount = isLast ? allBadges.length : acquiredBadgeIds.length + 1;
   const totalCount = allBadges.length;
+
+  /**
+   * ホーム画面に戻り、自動的に引き換え画面を開くための処理
+   */
+  const handleDirectToExchange = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 背景の onClose を防ぐ
+    
+    // 💡 画面遷移の演出として少し待機してからリダイレクト
+    setTimeout(() => {
+      // URLパラメータを付与してホームへ。Homeコンポーネント側でこれを検知してモーダルを開く
+      window.location.href = "/?openExchange=true";
+    }, 100);
+  };
 
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-between p-6 pointer-events-none">
@@ -133,47 +146,63 @@ export const DiscoveryComplete = ({
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
         className="w-full max-w-sm mb-4 pointer-events-auto"
+        onClick={isLast && !isExchanged ? handleDirectToExchange : onClose}
       >
-        <div className={`relative overflow-hidden border-2 rounded-2xl p-4 flex items-center justify-between shadow-2xl backdrop-blur-xl ${
+        <div className={`relative overflow-hidden border-2 rounded-2xl p-4 flex items-center justify-between shadow-2xl backdrop-blur-xl group active:scale-95 transition-transform ${
           isExchanged 
             ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400" 
             : isLast 
-              ? "bg-amber-950/60 border-amber-400 text-amber-400 animate-[pulse_3s_infinite]" 
+              ? "bg-amber-950/60 border-amber-400 text-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.2)]" 
               : "bg-black/60 border-white/10 text-white/80"
         }`}>
           {/* チケットの切り取り線風の装飾 */}
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-[radial-gradient(circle,currentColor_1px,transparent_1.5px)] bg-[length:1px_6px]" />
           
-          <div className="flex items-center gap-4 flex-1">
-            <div className={`p-3 rounded-xl ${isExchanged ? 'bg-emerald-500/20' : isLast ? 'bg-amber-400 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-white/10'}`}>
+          <div className="flex items-center gap-4 flex-1 overflow-hidden">
+            <div className={`p-3 rounded-xl shrink-0 ${isExchanged ? 'bg-emerald-500/20' : isLast ? 'bg-amber-400 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-white/10'}`}>
               <Ticket size={24} strokeWidth={isLast ? 2.5 : 1.5} />
             </div>
             
             <div className="flex flex-col min-w-0">
-              <span className={`text-[9px] font-black uppercase tracking-[0.2em] mb-0.5 ${isLast ? 'text-amber-400/60' : 'text-white/40'}`}>
-                Archivist Reward Status
+              <span className={`text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 whitespace-nowrap ${isLast ? 'text-amber-400/60' : 'text-white/40'}`}>
+                Archive Reward Status
               </span>
-              <h3 className="text-sm font-black tracking-tight whitespace-nowrap">
-                {isExchanged ? '景品交換済み：探究完了' : isLast ? '景品引き換えチケット有効' : '全作品収集でチケット解禁'}
+              <h3 className="text-[12px] font-black tracking-tighter whitespace-nowrap overflow-hidden">
+                {isExchanged ? '景品交換済み：探究完了' : isLast ? '引き換えチケットを使用する' : '全作品収集でチケット解禁'}
               </h3>
               {isLast && !isExchanged && (
-                <span className="text-[8px] font-bold opacity-80 animate-pulse">※ホーム画面からスタッフへ提示してください</span>
+                <div className="flex items-center gap-1 mt-0.5">
+                   <span className="text-[8px] font-bold opacity-80">タップしてホーム画面へ</span>
+                   <ArrowRight size={8} className="animate-[bounce-x_1s_infinite]" />
+                </div>
               )}
             </div>
           </div>
 
-          <div className="ml-4 pl-4 border-l border-white/10 flex flex-col items-center justify-center min-w-[60px]">
-             <span className="text-[8px] font-bold opacity-50 uppercase tracking-tighter mb-1">Total</span>
-             <span className="text-lg font-black font-mono leading-none">{currentCount}</span>
+          <div className={`ml-4 pl-4 border-l border-white/10 flex flex-col items-center justify-center min-w-[50px] shrink-0 ${isLast && !isExchanged ? 'animate-pulse' : ''}`}>
+             <span className="text-[8px] font-bold opacity-50 uppercase tracking-tighter mb-1">{isLast ? 'Valid' : 'Total'}</span>
+             <span className="text-lg font-black font-mono leading-none">{isLast ? 'OK' : currentCount}</span>
           </div>
         </div>
         
         {isLast && (
-           <p className="text-center text-white/30 text-[7px] uppercase tracking-[0.3em] mt-3 font-mono">
-             Your scientific journey reaches its magnificent conclusion.
-           </p>
+           <div className="mt-3 text-center space-y-1">
+             <p className="text-white/40 text-[7px] uppercase tracking-[0.3em] font-mono">
+               Your scientific journey reaches its magnificent conclusion.
+             </p>
+             <p className="text-amber-400/60 text-[8px] font-bold tracking-widest">
+               — ホーム画面へ戻りスタッフへ提示してください —
+             </p>
+           </div>
         )}
       </motion.div>
+
+      <style jsx global>{`
+        @keyframes bounce-x {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(3px); }
+        }
+      `}</style>
     </div>
   );
 };

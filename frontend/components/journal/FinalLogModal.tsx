@@ -147,8 +147,8 @@ export const FinalLogModal = ({
               </div>
             </div>
 
-            {/* 💡 右側：交換スタブ（半券） - モバイルでは幅を固定 */}
-            <div className="w-28 sm:w-64 bg-[#f9f5e9] p-3 sm:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden flex-shrink-0">
+            {/* 💡 右側：交換スタブ（半券） - モバイルでは幅を調整 */}
+            <div className="w-36 sm:w-64 bg-[#f9f5e9] p-2 sm:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden flex-shrink-0">
               <Ticket className="absolute -top-6 -right-6 text-[#3e2f28]/5 w-24 h-24 sm:w-32 sm:h-32 rotate-12" />
 
               <div className="relative z-10 w-full space-y-3 sm:space-y-6">
@@ -162,7 +162,7 @@ export const FinalLogModal = ({
                     <div className="w-12 h-12 sm:w-24 sm:h-24 border-2 sm:border-4 border-emerald-500 rounded-full flex items-center justify-center text-emerald-600 rotate-[-15deg] shadow-lg bg-white/80">
                       <span className="text-lg sm:text-3xl font-black">済</span>
                     </div>
-                    <p className="text-[7px] sm:text-xs font-black text-[#3e2f28]/60 uppercase tracking-widest">
+                    <p className="text-[7px] sm:text-xs font-black text-[#3e2f28]/60 uppercase tracking-widest whitespace-nowrap">
                       Done
                     </p>
                     <button
@@ -174,24 +174,24 @@ export const FinalLogModal = ({
                   </motion.div>
                 ) : confirmStep === 0 ? (
                   /* --- ステップ0: 初期表示 --- */
-                  <div className="space-y-3 sm:space-y-4 w-full">
+                  <div className="space-y-3 sm:space-y-4 w-full px-1">
                     <div className="space-y-0.5">
-                      <p className="text-[6px] sm:text-[9px] font-black text-amber-600 uppercase tracking-widest">
+                      <p className="text-[6px] sm:text-[9px] font-black text-amber-600 uppercase tracking-widest whitespace-nowrap">
                         Prize
                       </p>
-                      <p className="text-[10px] sm:text-lg font-black text-[#3e2f28]">
+                      <p className="text-[10px] sm:text-lg font-black text-[#3e2f28] whitespace-nowrap">
                         交換
                       </p>
                     </div>
                     <button
                       onClick={() => setConfirmStep(1)}
-                      className="w-full py-2 sm:py-4 bg-[#3e2f28] text-[#fdfaf2] text-[8px] sm:text-[11px] font-black uppercase tracking-widest shadow-xl active:scale-95"
+                      className="w-full py-2 sm:py-4 bg-[#3e2f28] text-[#fdfaf2] text-[8px] sm:text-[11px] font-black uppercase tracking-widest shadow-xl active:scale-95 whitespace-nowrap"
                     >
                       Redeem
                     </button>
                     <button
                       onClick={onClose}
-                      className="text-[7px] sm:text-[9px] font-bold text-[#3e2f28]/30 uppercase tracking-widest"
+                      className="text-[7px] sm:text-[9px] font-bold text-[#3e2f28]/30 uppercase tracking-widest whitespace-nowrap"
                     >
                       Later
                     </button>
@@ -201,30 +201,28 @@ export const FinalLogModal = ({
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-4 sm:space-y-5 bg-white p-3 sm:p-5 border-2 border-amber-500 shadow-2xl rounded-md"
+                    className="space-y-4 sm:space-y-5 bg-white p-2 sm:p-5 border-2 border-amber-500 shadow-2xl rounded-md"
                   >
-                    <AlertTriangle className="mx-auto text-amber-500 w-6 h-6 sm:w-8 sm:h-8" />
-                    <div className="space-y-1">
-                      <p className="text-[12px] sm:text-[14px] font-black text-red-600 leading-tight">
+                    <AlertTriangle className="mx-auto text-amber-500 w-5 h-5 sm:w-8 sm:h-8" />
+                    <div className="space-y-1 overflow-hidden px-1">
+                      <p className="text-[11px] sm:text-[14px] font-black text-red-600 leading-tight whitespace-nowrap">
                         スタッフ専用
                       </p>
-                      <p className="text-[9px] sm:text-[11px] font-bold text-[#3e2f28] leading-tight">
-                        スタッフにこの画面を
-                        <br />
-                        見せてください
+                      <p className="text-[7px] sm:text-[11px] font-bold text-[#3e2f28] leading-tight whitespace-nowrap">
+                        スタッフにこの画面を見せてください
                       </p>
                     </div>
                     <div className="space-y-1 pt-2">
                       <button
                         disabled={exchanging}
                         onClick={handleExchange}
-                        className="w-full py-3 bg-amber-500 text-white text-[10px] sm:text-[12px] font-black uppercase shadow-lg active:scale-95 disabled:opacity-50"
+                        className="w-full py-3 bg-amber-500 text-white text-[9px] sm:text-[12px] font-black uppercase shadow-lg active:scale-95 disabled:opacity-50 whitespace-nowrap"
                       >
-                        引き換えを実行
+                        引き換え実行
                       </button>
                       <button
                         onClick={() => setConfirmStep(0)}
-                        className="w-full py-1 text-[8px] sm:text-[9px] font-bold text-[#3e2f28]/40 uppercase tracking-widest"
+                        className="w-full py-1 text-[8px] sm:text-[9px] font-bold text-[#3e2f28]/40 uppercase tracking-widest whitespace-nowrap"
                       >
                         戻る
                       </button>

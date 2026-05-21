@@ -49,7 +49,17 @@ export default function Home() {
   const [showFinalLog, setShowFinalLog] = useState(false); // コンプリート記念モーダルの表示管理
   const [inputValue, setInputValue] = useState("1"); // 💡 人数入力用の状態
 
-  // --- 進捗状況の計算 ---
+  // --- ライフサイクル処理 ---
+  // 💡 修正: URLパラメータ openExchange=true があれば自動で引き換えモーダルを開く
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("openExchange") === "true") {
+      setShowFinalLog(true);
+      // パラメータを消して、リロードしても開きっぱなしにならないようにする
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+    }
+  }, []);
   // 1. 獲得済みの標本数をカウントします
   const acquiredCount = badges.filter((b: Badge) => isAcquired(b.id)).length;
   // 2. すべての標本を集めたか判定します
@@ -243,9 +253,19 @@ export default function Home() {
                 <div className="absolute inset-0 bg-amber-400/10 blur-2xl rounded-full animate-pulse" />
               )}
               {isComplete ? (
-                <History size={40} className="relative z-10" />
+                <>
+                  <History size={32} className="relative z-10 mb-1" />
+                  <span className="relative z-10 text-[10px] font-black uppercase tracking-tighter">
+                    {isExchanged ? "Archive" : "Redeem"}
+                  </span>
+                </>
               ) : (
-                <MapPin size={40} strokeWidth={1} className="relative z-10" />
+                <>
+                  <MapPin size={32} strokeWidth={1} className="relative z-10 mb-1" />
+                  <span className="relative z-10 text-[9px] font-bold uppercase tracking-widest opacity-40">
+                    Goal
+                  </span>
+                </>
               )}
             </motion.button>
           </div>
