@@ -28,6 +28,7 @@ export default function ARPage() {
     allBadges,
     acquiredBadgeIds,
     isLoaded,
+    isExchanged,
     setupListeners,
     navigateHome,
     setShowSuccess,
@@ -63,7 +64,6 @@ export default function ARPage() {
     const initScripts = async () => {
       setStatus("loading");
       try {
-        // ローカルに保存したスクリプトを順次ロード
         await loadScript("/scripts/aframe.min.js");
         await loadScript("/scripts/aframe-extras.min.js");
         await loadScript("/scripts/mindar-image-aframe.prod.js");
@@ -75,8 +75,6 @@ export default function ARPage() {
 
         if (AFRAME && AFRAME.THREE) {
           const THREE = AFRAME.THREE;
-          
-          // 3Dモデルのロード進捗を監視
           const manager = new THREE.LoadingManager();
           manager.onProgress = (url: string, itemsLoaded: number, itemsTotal: number) => {
             const p = Math.floor((itemsLoaded / itemsTotal) * 100);
@@ -91,13 +89,10 @@ export default function ARPage() {
           if (THREE.GLTFLoader) {
             const originalLoad = THREE.GLTFLoader.prototype.load;
             THREE.GLTFLoader.prototype.load = function (this: any, ...args: any[]) {
-              // ロードマネージャーをGLTFLoaderに紐付け
               this.manager = win._loadingManager || THREE.DefaultLoadingManager;
-              
               if (MeshoptDecoder) this.setMeshoptDecoder(MeshoptDecoder);
               if (THREE.DRACOLoader) {
                 const dracoLoader = new THREE.DRACOLoader();
-                // Dracoデコーダーもローカルを参照
                 dracoLoader.setDecoderPath("/scripts/");
                 this.setDRACOLoader(dracoLoader);
               }
@@ -136,7 +131,6 @@ export default function ARPage() {
 
     lastInjectedDataHashRef.current = currentDataHash;
     
-    // 💡 修正: キャッシュを活用するため URL の末尾に ?v= を付けない（あるいは固定する）
     const entitiesHtml = allBadges.map((badge: Badge) => {
       const settings = getSpecimenSettings(badge.name);
       return `
@@ -149,6 +143,7 @@ export default function ARPage() {
                    position="${settings.position || "0 0 0"}" 
                    rotation="${settings.rotation || "0 0 0"}" 
                    scale="${settings.scale || "0.3 0.3 0.3"}"
+                   animation-mixer
                  ></a-gltf-model>
                </a-entity>
              </a-entity>
@@ -159,9 +154,9 @@ export default function ARPage() {
 
     const sceneHtml = `
       <a-scene 
-        mindar-image="imageTargetSrc: /targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no;" 
+        mindar-image="imageTargetSrc: /targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no; filterMinCF: 0.0001; filterBeta: 0.001;" 
         color-space="sRGB" 
-        renderer="colorManagement: true, preserveDrawingBuffer: true, alpha: true" 
+        renderer="colorManagement: true, preserveDrawingBuffer: true, alpha: true, antialias: true, precision: highp" 
         vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" embedded
         style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;"
       >
@@ -177,16 +172,35 @@ export default function ARPage() {
 
     const boot = () => {
       if (sceneEl.systems?.["mindar-image-system"]) {
-        // 💡 改善点1: モデルのロードを待たずに、カメラを即座に開始
         sceneEl.systems["mindar-image-system"].start();
-        
         const fixVideo = (video: HTMLVideoElement) => {
           video.setAttribute("playsinline", "");
           video.muted = true;
+          // 💡 修正: ビデオ要素のスタイルを固定
+          video.style.position = "fixed";
+          video.style.top = "0";
+          video.style.left = "0";
+          video.style.width = "100vw";
+          video.style.height = "100vh";
+          video.style.objectFit = "cover";
           video.play().catch(() => {});
+          
+          // 💡 修正: 起動直後にリサイズを強制して一瞬のズーム現象を防止
+          setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
+          setTimeout(() => window.dispatchEvent(new Event("resize")), 500);
         };
         const existingVideo = document.querySelector("video");
         if (existingVideo) fixVideo(existingVideo);
+
+        // ビデオ要素が後から生成される場合（MindARの標準動作）にも対応
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((m) => {
+            m.addedNodes.forEach((node) => {
+              if (node.nodeName === "VIDEO") fixVideo(node as HTMLVideoElement);
+            });
+          });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
 
         setTimeout(() => setupListeners(), 500);
       }
@@ -202,9 +216,7 @@ export default function ARPage() {
     <div className="fixed inset-0 bg-black overflow-hidden select-none touch-none">
       <div ref={arContainerRef} className="absolute inset-0 w-full h-full z-10" />
 
-      {/* UIオーバーレイ */}
       <div className="absolute inset-0 z-20 pointer-events-none flex flex-col items-center">
-        {/* 初期ロード中 */}
         {status === "loading" && (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-white">
             <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -214,7 +226,6 @@ export default function ARPage() {
           </div>
         )}
 
-        {/* AR開始後 */}
         {status === "started" && !showSuccess && (
           <div className="w-full h-full flex flex-col items-center justify-between p-8 pt-20 pb-48">
             <div className="text-center space-y-2">
@@ -223,14 +234,11 @@ export default function ARPage() {
                   {isFound ? "Analyzing Specimen..." : "Scan Painting"}
                 </p>
               </div>
-              
               {!isFound && (
                 <p className="text-white/40 text-[8px] uppercase tracking-widest animate-pulse">
                   絵画にカメラを向けてください
                 </p>
               )}
-
-              {/* 💡 改善点2: マーカーは見つかったが、モデルがロード中の場合の表示 */}
               {isFound && modelProgress < 100 && (
                 <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 mt-2">
                   <p className="text-white/80 text-[9px] uppercase tracking-[0.2em] animate-pulse">
@@ -240,16 +248,11 @@ export default function ARPage() {
               )}
             </div>
 
-            {/* 解析ゲージ（モデルロード完了後のみ表示） */}
             {isFound && !acquired && modelProgress === 100 && (
               <div className="w-full max-w-[280px] space-y-4">
                 <div className="flex justify-between items-end">
-                  <span className="text-white text-[10px] font-black italic tracking-tighter">
-                    {activeBadge?.name}
-                  </span>
-                  <span className="text-white font-mono text-[10px]">
-                    {progress}%
-                  </span>
+                  <span className="text-white text-[10px] font-black italic tracking-tighter">{activeBadge?.name}</span>
+                  <span className="text-white font-mono text-[10px]">{progress}%</span>
                 </div>
                 <div className="h-[6px] w-full bg-white/20 rounded-full overflow-hidden">
                   <div className="h-full bg-white transition-all duration-100 ease-out" style={{ width: `${progress}%` }}></div>
@@ -260,9 +263,7 @@ export default function ARPage() {
             {isFound && acquired && (
               <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-3">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <p className="text-white text-[10px] font-bold uppercase tracking-widest">
-                  標本データ取得済み
-                </p>
+                <p className="text-white text-[10px] font-bold uppercase tracking-widest">標本データ取得済み</p>
               </div>
             )}
           </div>
@@ -274,6 +275,7 @@ export default function ARPage() {
               badgeName={activeBadge.name}
               artistName={activeBadge.artist}
               isLast={allBadges.length > 0 && acquiredBadgeIds.length === allBadges.length}
+              isExchanged={isExchanged}
               onClose={() => setShowSuccess(false)}
             />
           </div>

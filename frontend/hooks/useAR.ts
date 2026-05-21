@@ -45,6 +45,12 @@ export const useAR = () => {
     { revalidateOnFocus: false },
   );
 
+  const { data: profile } = useSWR(
+    userId ? `profile-${userId}` : null,
+    () => BadgeService.getProfile(userId),
+    { revalidateOnFocus: false },
+  );
+
   const acquiredBadgeIds = useMemo(
     () => acquiredRows.map((r) => r.badge_id),
     [acquiredRows],
@@ -213,6 +219,7 @@ export const useAR = () => {
     allBadges,
     isLoaded,
     acquiredBadgeIds,
+    isExchanged: profile?.is_exchanged ?? false,
     setupListeners,
     navigateHome: useCallback(() => {
       setIsExiting(true);
