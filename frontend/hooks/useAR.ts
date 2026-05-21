@@ -79,10 +79,12 @@ export const useAR = () => {
     console.log("🧹 ARの終了処理を開始します...");
     if (timerRef.current) clearInterval(timerRef.current);
 
-    const sceneEl = document.querySelector("a-scene") as any;
+    const sceneEl = document.querySelector("a-scene") as HTMLElement & {
+      systems?: Record<string, { stop: () => void; controller?: unknown }>;
+    };
     const mindarSystem = sceneEl?.systems?.["mindar-image-system"];
     if (mindarSystem?.controller) {
-      try { mindarSystem.stop(); } catch (e) { console.error("MindAR停止失敗:", e); }
+      try { mindarSystem.stop(); } catch (error) { console.error("MindAR停止失敗:", error); }
     }
     if (sceneEl) sceneEl.remove();
 
@@ -90,7 +92,9 @@ export const useAR = () => {
       try {
         const stream = v.srcObject as MediaStream | null;
         if (stream) stream.getTracks().forEach((track) => track.stop());
-      } catch (e) {}
+      } catch {
+        // ignore errors
+      }
       v.remove();
     });
   }, []);
@@ -166,7 +170,7 @@ export const useAR = () => {
         const match = attr.match(/targetIndex:\s*(\d+)/);
         index = match ? parseInt(match[1]) : -1;
       } else if (typeof attr === "object" && attr !== null && "targetIndex" in attr) {
-        index = (attr as any).targetIndex;
+        index = (attr as { targetIndex: number }).targetIndex;
       }
 
       if (index === -1) return;
@@ -228,7 +232,12 @@ export const useAR = () => {
     }, [cleanupAR]),
     setShowSuccess,
     captureImage: useCallback(async () => {
-      const sceneEl = document.querySelector("a-scene") as any;
+      const sceneEl = document.querySelector("a-scene") as HTMLElement & {
+        renderer?: { render: (scene: unknown, camera: unknown) => void };
+        camera?: unknown;
+        object3D?: unknown;
+        canvas?: HTMLCanvasElement;
+      };
       const videoEl = document.querySelector("video");
       if (!sceneEl || !videoEl) return;
 
@@ -240,7 +249,7 @@ export const useAR = () => {
         if (!ctx) return;
 
         ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-        if (sceneEl.renderer && sceneEl.camera) {
+        if (sceneEl.renderer && sceneEl.camera && sceneEl.object3D) {
           sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
           const aframeCanvas = sceneEl.canvas;
           if (aframeCanvas) {
@@ -257,7 +266,9 @@ export const useAR = () => {
           if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
               await navigator.share({ files: [file], title: "標本の観察記録", text: "https://aichitech.day/" });
-            } catch (e) {}
+            } catch {
+              // ignore
+            }
           } else {
             const link = document.createElement("a");
             link.download = fileName;
@@ -265,8 +276,8 @@ export const useAR = () => {
             link.click();
           }
         }, "image/jpeg", 0.9);
-      } catch (e) {
-        console.error("📸 保存失敗:", e);
+      } catch (error) {
+        console.error("📸 保存失敗:", error);
       }
     }, []),
   };

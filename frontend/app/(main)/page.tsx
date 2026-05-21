@@ -54,7 +54,8 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("openExchange") === "true") {
-      setShowFinalLog(true);
+      // 💡 非同期にステートを更新することでカスケードレンダリングを防止
+      setTimeout(() => setShowFinalLog(true), 0);
       // パラメータを消して、リロードしても開きっぱなしにならないようにする
       const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
