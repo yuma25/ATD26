@@ -10,6 +10,9 @@ import { signInAnonymously, supabase } from "@backend/lib/supabase";
  * SWR を使用して、データのキャッシュと高速な表示を実現します。
  */
 export const useHome = () => {
+  // --- 内部状態 ---
+  const [localSubmitted, setLocalSubmitted] = useState(false);
+
   // 1. 基本的な標本リストの取得 (SWR)
   const {
     data: allBadges = [],
@@ -144,6 +147,7 @@ export const useHome = () => {
     isExchanged: profile?.is_exchanged ?? false,
     /** パーティ人数入力画面を表示すべきかどうか */
     showPartyInput:
+      !localSubmitted &&
       !isAdmin &&
       !initialLoading &&
       (userId === "" ||
@@ -177,12 +181,18 @@ export const useHome = () => {
      * @returns {Promise<boolean>} 更新に成功したかどうか
      */
     updatePartySize: async (size: number) => {
+      setLocalSubmitted(true); // 💡 ローカルで即座に非表示フラグを立てる
       const u = await signInAnonymously();
-      if (!u) return false;
+      if (!u) {
+        setLocalSubmitted(false);
+        return false;
+      }
       const ok = await BadgeService.updateProfile(u.id, { party_size: size });
       if (ok) {
         void mutateProfile();
         void mutateSession();
+      } else {
+        setLocalSubmitted(false); // 失敗した場合は再表示できるようにする
       }
       return ok;
     },
