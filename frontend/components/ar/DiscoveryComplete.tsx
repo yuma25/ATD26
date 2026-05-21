@@ -4,12 +4,15 @@
  * モジュールのインポート
  */
 import { motion } from "framer-motion";
-import { Check, Ticket } from "lucide-react";
+import { Check, Ticket, Award, Sparkles } from "lucide-react";
+import type { Badge } from "@backend/types";
 
 /**
  * DiscoveryCompleteProps の説明：
  * @param badgeName - 発見した標本の名前
  * @param artistName - 作者名
+ * @param allBadges - 全標本リスト
+ * @param acquiredBadgeIds - 獲得済み標本IDリスト
  * @param onClose - 画面を閉じるための関数
  * @param isLast - 最後の1つかどうか
  * @param isExchanged - すでに景品交換済みかどうか
@@ -17,6 +20,8 @@ import { Check, Ticket } from "lucide-react";
 interface DiscoveryCompleteProps {
   badgeName: string;
   artistName?: string;
+  allBadges: Badge[];
+  acquiredBadgeIds: string[];
   onClose: () => void;
   isLast?: boolean;
   isExchanged?: boolean;
@@ -29,14 +34,28 @@ interface DiscoveryCompleteProps {
 export const DiscoveryComplete = ({
   badgeName,
   artistName,
+  allBadges,
+  acquiredBadgeIds,
   onClose,
   isLast = false,
   isExchanged = false,
 }: DiscoveryCompleteProps) => {
+  const currentCount = isLast ? allBadges.length : acquiredBadgeIds.length + 1;
+  const totalCount = allBadges.length;
+
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-between p-6 pointer-events-none">
-      {/* 上部の装飾（空） */}
-      <div className="h-20" />
+      {/* 上部：進捗カウンター */}
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="mt-12 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 flex items-center gap-3 shadow-xl"
+      >
+        <Award size={16} className={isLast ? "text-amber-400" : "text-white/60"} />
+        <span className="text-white font-mono text-sm font-black tracking-widest">
+          {currentCount} / {totalCount}
+        </span>
+      </motion.div>
 
       {/* メイン演出エリア */}
       <motion.div
@@ -57,9 +76,10 @@ export const DiscoveryComplete = ({
           }`}
         >
           {isLast ? (
-            <div className="text-center">
-              <div className="text-4xl font-black mb-1">ALL</div>
-              <Check size={60} strokeWidth={4} />
+            <div className="text-center relative">
+              <Sparkles className="absolute -top-12 -right-8 text-amber-300 animate-pulse" size={40} />
+              <div className="text-4xl font-black mb-1 tracking-tighter">COMPLETE</div>
+              <Check size={50} strokeWidth={4} className="mx-auto" />
             </div>
           ) : (
             <Check size={80} strokeWidth={3} />
@@ -69,7 +89,7 @@ export const DiscoveryComplete = ({
               isLast ? "bg-amber-400 text-black" : "bg-white text-black"
             }`}
           >
-            {isLast ? "コンプリート！" : "記録完了"}
+            {isLast ? "全作品収集完了" : "記録完了"}
           </div>
         </motion.div>
 
@@ -94,28 +114,9 @@ export const DiscoveryComplete = ({
             </p>
           )}
           <p className="text-white/60 font-mono text-[10px] uppercase tracking-[0.5em] pt-2">
-            {isLast ? "全ての記録に成功しました" : "発見成功"}
+            {isLast ? "全ての標本のアーカイブに成功しました" : "新たな標本を発見しました"}
           </p>
         </div>
-
-        {/* 💡 全収集完了時の特別な案内 */}
-        {isLast && !isExchanged && (
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="bg-amber-500 text-black px-6 py-4 rounded-xl text-center shadow-2xl border-2 border-white/50"
-          >
-            <p className="text-xs font-black mb-1">🎁 景品獲得のチャンス！</p>
-            <p className="text-[14px] font-bold leading-tight">
-              ホーム画面に戻り
-              <br />
-              「景品引き換えチケット」を
-              <br />
-              運営スタッフに提示してください
-            </p>
-          </motion.div>
-        )}
 
         <motion.div
           animate={{ opacity: [0.3, 0.6, 0.3] }}
@@ -126,27 +127,52 @@ export const DiscoveryComplete = ({
         </motion.div>
       </motion.div>
 
-      {/* --- 下部：景品交換ステータス UI --- */}
+      {/* --- 下部：景品交換チケット UI --- */}
       <motion.div
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="w-full max-w-xs mb-4 pointer-events-auto"
+        className="w-full max-w-sm mb-4 pointer-events-auto"
       >
-        <div className="bg-black/60 backdrop-blur-md border border-white/20 rounded-full py-3 px-6 flex items-center justify-between shadow-2xl">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${isExchanged ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-white/40'}`}>
-              <Ticket size={16} />
+        <div className={`relative overflow-hidden border-2 rounded-2xl p-4 flex items-center justify-between shadow-2xl backdrop-blur-xl ${
+          isExchanged 
+            ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400" 
+            : isLast 
+              ? "bg-amber-950/60 border-amber-400 text-amber-400 animate-[pulse_3s_infinite]" 
+              : "bg-black/60 border-white/10 text-white/80"
+        }`}>
+          {/* チケットの切り取り線風の装飾 */}
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-[radial-gradient(circle,currentColor_1px,transparent_1.5px)] bg-[length:1px_6px]" />
+          
+          <div className="flex items-center gap-4 flex-1">
+            <div className={`p-3 rounded-xl ${isExchanged ? 'bg-emerald-500/20' : isLast ? 'bg-amber-400 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-white/10'}`}>
+              <Ticket size={24} strokeWidth={isLast ? 2.5 : 1.5} />
             </div>
-            <div className="flex flex-col">
-              <span className="text-[8px] font-black text-white/40 uppercase tracking-widest leading-none mb-1">Prize Status</span>
-              <span className={`text-[11px] font-bold leading-none ${isExchanged ? 'text-emerald-400' : 'text-white/80'}`}>
-                {isExchanged ? '景品交換済み' : isLast ? '交換可能です' : '全作品収集で交換可'}
+            
+            <div className="flex flex-col min-w-0">
+              <span className={`text-[9px] font-black uppercase tracking-[0.2em] mb-0.5 ${isLast ? 'text-amber-400/60' : 'text-white/40'}`}>
+                Archivist Reward Status
               </span>
+              <h3 className="text-sm font-black tracking-tight whitespace-nowrap">
+                {isExchanged ? '景品交換済み：探究完了' : isLast ? '景品引き換えチケット有効' : '全作品収集でチケット解禁'}
+              </h3>
+              {isLast && !isExchanged && (
+                <span className="text-[8px] font-bold opacity-80 animate-pulse">※ホーム画面からスタッフへ提示してください</span>
+              )}
             </div>
           </div>
-          <div className={`w-2 h-2 rounded-full animate-pulse ${isExchanged ? 'bg-emerald-500' : isLast ? 'bg-amber-500' : 'bg-white/20'}`} />
+
+          <div className="ml-4 pl-4 border-l border-white/10 flex flex-col items-center justify-center min-w-[60px]">
+             <span className="text-[8px] font-bold opacity-50 uppercase tracking-tighter mb-1">Total</span>
+             <span className="text-lg font-black font-mono leading-none">{currentCount}</span>
+          </div>
         </div>
+        
+        {isLast && (
+           <p className="text-center text-white/30 text-[7px] uppercase tracking-[0.3em] mt-3 font-mono">
+             Your scientific journey reaches its magnificent conclusion.
+           </p>
+        )}
       </motion.div>
     </div>
   );

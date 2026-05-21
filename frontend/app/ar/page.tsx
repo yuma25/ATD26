@@ -251,7 +251,9 @@ export default function ARPage() {
             {isFound && !acquired && modelProgress === 100 && (
               <div className="w-full max-w-[280px] space-y-4">
                 <div className="flex justify-between items-end">
-                  <span className="text-white text-[10px] font-black italic tracking-tighter">{activeBadge?.name}</span>
+                  <span className="text-white text-[10px] font-black italic tracking-tighter">
+                    {activeBadge?.name} ({acquiredBadgeIds.length + 1} / {allBadges.length})
+                  </span>
                   <span className="text-white font-mono text-[10px]">{progress}%</span>
                 </div>
                 <div className="h-[6px] w-full bg-white/20 rounded-full overflow-hidden">
@@ -274,6 +276,8 @@ export default function ARPage() {
             <DiscoveryComplete
               badgeName={activeBadge.name}
               artistName={activeBadge.artist}
+              allBadges={allBadges}
+              acquiredBadgeIds={acquiredBadgeIds}
               isLast={allBadges.length > 0 && acquiredBadgeIds.length === allBadges.length}
               isExchanged={isExchanged}
               onClose={() => setShowSuccess(false)}
