@@ -1,0 +1,3 @@
+# GitHub Linguist 設定
+# 外部ライブラリを言語統計から除外する。
+frontend/public/scripts/** linguist-vendored
