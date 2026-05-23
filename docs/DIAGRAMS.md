@@ -1,271 +1,171 @@
 # 📊 システム図面集 (System Diagrams)
 
-本ドキュメントでは、アプリケーションの構造、振る舞い、および配置を UML および各種図面を用いて多角的に解説します。エンジニアがシステムの全体像を把握し、新しい機能の追加や修正を行う際の指針となります。
+本ドキュメントでは、アプリケーションの構造、振る舞い、および配置を多角的に解説する。
 
 ---
 
 ## 1. クラス図 (Class Diagram)
 
-システムの「静的な構造」を表します。主要なサービスクラスと、データベースとやり取りされるデータの型（エンティティ）の関係を定義しています。
-
-**解説:** `BadgeService` はビジネスロジックの中心であり、`CacheService`（Redis連携）を利用しながら `Badge`（作品）や `Profile`（ユーザー情報）を管理します。
+システムの静的な構造と、主要なサービスクラス間の関係を示す。
 
 ```mermaid
 classDiagram
     class BadgeService {
         <<Service>>
-        +getAllBadges(signal) 標本一覧取得
-        +getProfile(userId, signal) プロフィール取得
-        +acquireBadge(userId, badgeId) 標本獲得の記録
-        +getAcquiredBadges(userId, signal) 獲得済み一覧取得
-        +updateProfile(userId, updates) プロフィール更新
+        +getAllBadges(signal)
+        +getProfile(userId, signal)
+        +acquireBadge(userId, badgeId)
+        +getAcquiredBadges(userId, signal)
+        +updateProfile(userId, updates)
     }
     class CacheService {
         <<Service>>
-        +get(key) キャッシュ取得
-        +set(key, value, ttl) キャッシュ保存
-        +delete(key) キャッシュ削除
+        +get(key)
+        +set(key, value, ttl)
+        +delete(key)
     }
     class SpecimenSettings {
         <<Interface>>
-        +scale: スケール
-        +position: 位置補正
-        +rotation: 回転補正
-        +outerAnimation: 外側アニメーション
-        +innerAnimation: 内側アニメーション
+        +scale: string
+        +position: string
+        +outerAnimation: string
     }
     class Badge {
         <<Entity>>
-        +id: ID (UUID)
-        +name: 作品名
-        +artist: 作者名
-        +model_url: 3DモデルURL
-        +image_url: 画像URL
-        +target_index: マーカー番号
+        +id: UUID
+        +name: string
+        +target_index: number
     }
-    class UserBadge {
-        <<Entity>>
-        +user_id: ユーザーID
-        +badge_id: 標本ID
-        +acquired_at: 獲得日時
-    }
-    class Profile {
-        <<Entity>>
-        +id: ID (UUID)
-        +party_size: パーティー人数
-        +is_exchanged: 景品交換済みフラグ
-    }
-    
+
     BadgeService ..> Badge : データを管理
-    BadgeService ..> UserBadge : 獲得記録を管理
-    BadgeService ..> Profile : ユーザー情報を管理
-    BadgeService --> CacheService : 高速化のために利用
+    BadgeService --> CacheService : キャッシュ処理を委譲
+
+    style BadgeService fill:#3e2f28,color:#fff,stroke:#3e2f28,stroke-width:2px
+    style CacheService fill:#f59e0b,color:#000,stroke:#3e2f28,stroke-width:2px
+    style Badge fill:#d4c5a9,color:#3e2f28,stroke:#3e2f28
 ```
 
 ---
 
 ## 2. シーケンス図 (Sequence Diagram)
 
-「時間の経過」に沿ったオブジェクト間のやり取りを表します。
-
-**解説:** 管理者ダッシュボードの統計表示における、キャッシュ（Redis）の活用フローです。一度 DB で集計した結果を Redis に保存（SET）し、次回以降は DB に負荷をかけずに高速に返却（GET）する仕組みを可視化しています。
+管理者ダッシュボードの統計表示における、キャッシュ（Redis）の活用フローである。
 
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Admin as 管理者ブラウザ
-    participant API as 管理API (/stats)
-    participant Redis as Redis (キャッシュ)
-    participant DB as PostgreSQL (DB)
+    participant Admin as 🏛️ 管理者
+    participant API as 📜 管理API
+    participant Redis as ⚡ Redis
+    participant DB as 🗄️ PostgreSQL
 
     Admin->>API: 統計データを要求 (GET)
-    API->>Redis: キャッシュがあるか確認
-    
+    API->>Redis: キャッシュ確認
+
     alt キャッシュあり (Hit)
-        Redis-->>API: キャッシュデータを返す
+        Redis-->>API: データを返却
     else キャッシュなし (Miss)
         API->>DB: 作品数・獲得数を集計
-        DB-->>API: 集計結果を返す
-        API->>Redis: 結果を保存 (300秒間)
+        DB-->>API: 集計結果
+        API->>Redis: 結果を保存 (300s)
     end
-    
-    API-->>Admin: 統計データを返却 (JSON)
+
+    API-->>Admin: 統計データを返却
 ```
 
 ---
 
 ## 3. アクティビティ図 (Activity Diagram)
 
-ユーザーが体験する「一連の業務フロー」を表します。
-
-**解説:** アプリを起動してから、ARで作品を見つけ、図録を完成させ、最後に景品と交換するまでのメインループです。
+ユーザーが体験する「発見と記録」のメインループである。
 
 ```mermaid
 graph TD
-    Start([アプリ起動]) --> Auth[匿名サインイン / セッション復元]
-    Auth --> Home[ホーム画面]
-    
-    Home --> AR[ARスキャン開始]
+    Start([<b>アプリ起動</b>]) --> Auth[匿名サインイン]
+    Auth --> Home{ホーム画面}
+
+    Home -- 探索 --> AR[ARスキャン開始]
     AR --> Scan{作品を発見?}
     Scan -- Yes --> Analysis[解析ゲージを貯める]
-    Analysis --> Acquired[標本獲得 / DBに保存]
+    Analysis --> Acquired[<b>標本獲得 / 記録</b>]
     Acquired --> AR
     Scan -- No --> AR
-    
-    Home --> Journal[図録を閲覧]
-    Journal --> Detail[作品の拡大・詳細鑑賞]
+
+    Home -- 閲覧 --> Journal[図録を閲覧]
+    Journal --> Detail[詳細鑑賞]
     Detail --> Journal
-    
-    Journal --> Exchange[景品交換画面]
-    Exchange --> Finish([体験終了])
+
+    Journal --> Exchange[景品交換]
+    Exchange --> Finish([<b>体験終了</b>])
+
+    %% スタイル定義
+    classDef startEnd fill:#3e2f28,color:#fff,stroke:#3e2f28,stroke-width:2px
+    classDef action fill:#fffdf0,color:#3e2f28,stroke:#3e2f28,stroke-dasharray: 5 5
+    classDef important fill:#f59e0b,color:#000,stroke:#3e2f28,stroke-width:2px
+
+    class Start,Finish startEnd
+    class Auth,AR,Journal,Detail,Analysis action
+    class Acquired,Exchange important
 ```
 
 ---
 
 ## 4. ステートマシン図 (State Machine Diagram)
 
-特定の画面やオブジェクトの「状態の変化」を表します。
-
-**解説:** `/ar` ページ内における AR エンジンの内部状態です。カメラの起動から、マーカーを見つけて解析が完了するまでの条件分岐を定義しています。
+`/ar` ページ内における AR エンジンの内部状態遷移である。
 
 ```mermaid
 stateDiagram-v2
-    [*] --> 初期化中: ページ遷移
-    初期化中 --> 読み込み中: A-Frame/MindAR起動
+    [*] --> 読み込み中: ページ遷移
     読み込み中 --> スキャン中: カメラ準備完了
-    
-    スキャン中 --> 解析中: マーカー検出 (Found)
-    解析中 --> スキャン中: マーカー紛失 (Lost)
-    
-    解析中 --> 登録中: 解析ゲージ100%
-    登録中 --> 獲得済み: DB保存完了
-    
-    獲得済み --> スキャン中: ダイアログを閉じる
-    スキャン中 --> [*]: ホームへ戻る
+
+    state スキャン中 {
+        [*] --> 探索中
+        探索中 --> 解析中: マーカー検出 (Found)
+        解析中 --> 探索中: マーカー紛失 (Lost)
+        解析中 --> 記録中: ゲージ100%
+    }
+
+    記録中 --> 獲得済み: DB保存完了
+    獲得済み --> 探索中: ダイアログを閉じる
+
+    獲得済み --> [*]: ホームへ戻る
 ```
 
 ---
 
-## 5. コミュニケーション図 (Communication Diagram)
+## 5. 配置図 (Deployment Diagram)
 
-オブジェクト間の「関係性とメッセージ」に注目した図です。
-
-**解説:** フロントエンドの各モジュールが、どのような順番で連携してデータを取得・表示しているかを示します。
+システムを支えるクラウドインフラとプロトコルの全体構成である。
 
 ```mermaid
-graph LR
-    Page[ARページ] -- "1. フックを呼び出し" --> Hook[useAR Hook]
-    Hook -- "2. データを要求" --> Service[BadgeService]
-    Service -- "3. API通信" --> API[内部API]
-    API -- "4. クエリ実行" --> DB[(Supabase)]
-    
-    Hook -- "5. UIを表示" --> UI[獲得成功画面]
-    Hook -- "6. 3D描画制御" --> AFrame[A-Frame / MindAR]
-```
-
----
-
-## 6. 配置図 (Deployment Diagram)
-
-システムが「どのハードウェア/クラウド」で動作しているかを表します。
-
-**解説:** Vercel によるホスティングと、バックエンドの BaaS (Supabase, Upstash) の連携、および通信プロトコル（HTTPS/JWT）の全体構成です。
-
-```mermaid
-graph TD
-    User((ユーザーのスマホ))
-    
-    subgraph CloudVercel ["Vercel (ホスティング・エッジ)"]
-        Next["Next.js アプリ / API"]
-        CDN["Vercel CDN / 画像・3Dモデル"]
+graph TB
+    subgraph Client ["📱 ユーザー端末 (Browser)"]
+        UI["Webアプリ (Next.js)"]
     end
-    
-    subgraph BaaS ["バックエンドサービス"]
-        Supa[("Supabase / DB & 認証")]
-        Redis[("Upstash / Redisキャッシュ")]
+
+    subgraph Vercel ["☁️ Vercel Edge"]
+        API["API Routes / Edge Functions"]
+        CDN["Vercel CDN (Assets)"]
     end
-    
-    User -- "HTTPS (通信)" --> CDN
-    User -- "HTTPS (通信)" --> Next
-    Next -- "SQL (データ)" --> Supa
-    Next -- "REST (キャッシュ)" --> Redis
-    Next -- "JWT (認証)" --> Supa
-```
 
----
-
-## 7. パッケージ図 (Package Diagram)
-
-システムの「ディレクトリ構造と依存関係」を表します。
-
-**解説:** モノレポ構造を採用しており、`frontend` が `backend` の共通ロジックを参照し、双方が `docs` の仕様書を参照する関係を示します。
-
-```mermaid
-graph TD
-    subgraph Root ["プロジェクトルート"]
-        subgraph FE ["frontend (フロントエンド)"]
-            App["app (画面)"]
-            Comp["components (部品)"]
-            Hooks["hooks (ロジック)"]
-        end
-        
-        subgraph BE ["backend (バックエンド共通)"]
-            Services["services (機能)"]
-            Lib["lib (基礎)"]
-            Types["types (型定義)"]
-        end
-        
-        subgraph Docs ["docs (ドキュメント)"]
-            API_MD["API仕様書"]
-            ARCH_MD["設計仕様書"]
-        end
+    subgraph Backend ["⚙️ Backend Services"]
+        Supa[("🗄️ Supabase / DB")]
+        Redis[("⚡ Upstash / Redis")]
     end
-    
-    FE -- import --> BE
-    FE -- 参照 --> Docs
-    BE -- 参照 --> Docs
-```
 
----
+    UI -- HTTPS/JWT --> API
+    UI -- HTTPS --> CDN
+    API -- SQL --> Supa
+    API -- REST --> Redis
 
-## 8. コンポーネント図 (Component Diagram)
-
-システムの「機能ブロック」とそのインターフェースを表します。
-
-**解説:** フロントエンド内部の主要な構成要素をグループ化したものです。`LogicHooks` がオーケストレーターとして機能し、UI と AR エンジンを制御します。
-
-```mermaid
-graph TD
-    subgraph "フロントエンドシステム (Frontend System)"
-        Router["Next.js App Router"]
-        LogicHooks["カスタムフック (Logic)"]
-        UI["UIコンポーネント"]
-        AREngine["ARエンジン (MindAR)"]
-    end
-    
-    Router --> LogicHooks
-    LogicHooks --> UI
-    LogicHooks --> AREngine
-    AREngine -.-> Models["3Dモデル (.glb)"]
-    UI -- イベント --> LogicHooks
-```
-
----
-
-## 9. オブジェクト図 (Object Diagram)
-
-ある時点での「具体的なデータの状態」を表します。
-
-**解説:** ID `user_123` のユーザーが「自然に寄り添う者たち」を 獲得した瞬間の、メモリ上のデータ構造を例示したものです。
-
-```mermaid
-graph TD
-    UserInstance["<u>currentUser: Profile</u><br/>id = 'user_123'<br/>party_size = 3<br/>is_exchanged = false"]
-    
-    Badge1["<u>butterfly: Badge</u><br/>id = 'b_001'<br/>name = '自然に寄り添う者たち'"]
-    
-    Record1["<u>record1: UserBadge</u><br/>user_id = 'user_123'<br/>badge_id = 'b_001'<br/>acquired_at = '2026-05-20 10:00'"]
-    
-    UserInstance --- Record1
-    Record1 --- Badge1
+    %% スタイル定義
+    style Client fill:#e8e2d2,stroke:#3e2f28,stroke-width:2px
+    style Vercel fill:#d4c5a9,stroke:#3e2f28,stroke-width:2px
+    style Backend fill:#3e2f28,color:#fff,stroke:#3e2f28,stroke-width:2px
+    style UI fill:#fffdf0,color:#3e2f28,stroke:#3e2f28
+    style API fill:#fffdf0,color:#3e2f28,stroke:#3e2f28
+    style CDN fill:#fffdf0,color:#3e2f28,stroke:#3e2f28
+    style Supa fill:#f59e0b,color:#000,stroke:#3e2f28
+    style Redis fill:#f59e0b,color:#000,stroke:#3e2f28
 ```

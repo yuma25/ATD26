@@ -1,9 +1,8 @@
 "use client";
 
 /**
- * 【管理者ログイン画面】
- * 管理者パネルにアクセスするためのログインフォームです。
- * Supabase Auth（メールアドレスとパスワード）を利用して認証を行います。
+ * パッケージ: app/(main)/admin/login
+ * 管理者パネル専用の認証画面を提供する。
  */
 
 import { useState, useEffect } from "react";
@@ -11,18 +10,34 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@backend/lib/supabase";
 import { LogIn, Key, Mail, AlertCircle, RefreshCw } from "lucide-react";
 
+/**
+ * [概要] 管理者ログイン画面のコンポーネントである。
+ * メールアドレスとパスワードによる認証フォームを提供し、Supabase Auth を用いて検証を行う。
+ *
+ * [技術的ステップ]
+ * 1. セッション監視: useEffect 内で現在のセッションを確認し、既に管理者としてログイン済みの場合は自動的にダッシュボード (/admin) へリダイレクトする。
+ * 2. 認証処理: handleLogin 関数内で supabase.auth.signInWithPassword を呼び出し、認証結果に応じたエラーハンドリングを行う。
+ * 3. セキュリティ: 匿名ユーザーや一般ユーザーを排除するため、session.user.app_metadata.provider の値を厳密にチェックする。
+ * 4. UI 演出: 羊皮紙風の背景やマスキングテープの装飾を適用し、アプリ全体の「手記」というコンセプトを維持している。
+ */
 export default function AdminLoginPage() {
   // --- 状態管理 (State) ---
-  const [email, setEmail] = useState(""); // 入力されたメールアドレス
-  const [password, setPassword] = useState(""); // 入力されたパスワード
-  const [error, setError] = useState<string | null>(null); // エラーメッセージ
-  const [isLoading, setIsLoading] = useState(false); // ログイン処理中フラグ
-  const [isChecking, setIsChecking] = useState(true); // 初回のログインチェック中フラグ
+  /** 入力されたメールアドレス */
+  const [email, setEmail] = useState("");
+  /** 入力されたパスワード */
+  const [password, setPassword] = useState("");
+  /** 表示するエラーメッセージの内容 */
+  const [error, setError] = useState<string | null>(null);
+  /** ログイン処理の実行中フラグ */
+  const [isLoading, setIsLoading] = useState(false);
+  /** 初回のログイン状態チェック中フラグ */
+  const [isChecking, setIsChecking] = useState(true);
+
   const router = useRouter();
 
   /**
-   * 💡 自動転送設定
-   * すでにログインしている場合は、ログイン画面を表示せずにダッシュボードへ移動させます。
+   * [概要] 初回マウント時にユーザーのログイン状態を確認する。
+   * 管理者権限を持つセッションが確立されている場合、ログイン画面をスキップさせる。
    */
   useEffect(() => {
     const checkUser = async () => {
@@ -34,14 +49,15 @@ export default function AdminLoginPage() {
         data: { session },
       } = await supabase.auth.getSession();
 
-      // 💡 厳格チェック：セッションがあり、かつそれが「メールログイン（管理者）」の場合のみ自動転送
+      // 管理者権限の厳格チェック。
+      // provider が "email" であり、かつ匿名ログインでない場合を管理者とみなす。
       const isEmailUser = session?.user?.app_metadata?.provider === "email";
       const isAnonymous = session?.user?.is_anonymous;
 
       if (session && !isAnonymous && isEmailUser) {
         router.replace("/admin");
       } else {
-        // 管理者以外（未ログインまたは匿名ユーザー）の場合は、ログインフォームを表示する（チェック完了）
+        // 管理者でない場合は、そのままログインフォームを表示させる。
         setIsChecking(false);
       }
     };
@@ -49,17 +65,18 @@ export default function AdminLoginPage() {
   }, [router]);
 
   /**
-   * ログインボタンが押された時の処理
+   * [概要] ログインフォーム送信時の処理を行う。
+   * @param e [React.FormEvent] フォーム送信イベント。
    */
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // ページのリロードを防ぐ
+    e.preventDefault(); // ページのリロード（既定動作）をキャンセルする。
     setIsLoading(true);
     setError(null);
 
     try {
       if (!supabase) throw new Error("Supabase client not initialized");
 
-      // Supabaseの機能を使って認証を実行
+      // SDK を介して認証を実行する。
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -67,10 +84,10 @@ export default function AdminLoginPage() {
 
       if (loginError) throw loginError;
 
-      // 成功したらダッシュボードへ移動
+      // 認証成功時、管理者ダッシュボードへ遷移する。
       router.push("/admin");
     } catch (err: unknown) {
-      // エラーがあればメッセージを表示
+      // エラーメッセージの抽出とステートへの反映。
       const message =
         err instanceof Error ? err.message : "ログインに失敗しました";
       setError(message);
@@ -79,7 +96,7 @@ export default function AdminLoginPage() {
     }
   };
 
-  // セッション確認中の表示
+  // セッション確認中のローディング画面を表示する。
   if (isChecking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#e8e2d2]">
@@ -88,11 +105,10 @@ export default function AdminLoginPage() {
     );
   }
 
-  // --- ログインフォームの表示 ---
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#e8e2d2]">
       <div className="max-w-md w-full">
-        {/* ヘッダー装飾 */}
+        {/* ヘッダーセクション：タイトルとアイコン */}
         <div className="text-center mb-8">
           <div className="inline-block p-4 rounded-full bg-white/50 backdrop-blur-sm border border-[#3e2f28]/10 mb-4">
             <LogIn className="w-8 h-8 text-[#3e2f28]" />
@@ -103,9 +119,9 @@ export default function AdminLoginPage() {
           <p className="text-[#3e2f28]/60 italic font-serif">管理者ログイン</p>
         </div>
 
-        {/* メインフォーム */}
+        {/* ログインフォームカード */}
         <div className="bg-white/40 backdrop-blur-md p-8 rounded-2xl border border-white/20 shadow-xl relative overflow-hidden">
-          {/* デザイン用のテープ装飾 */}
+          {/* デザイン装飾（テープ） */}
           <div className="tape -top-2 -left-4 rotate-[-15deg] w-20 h-6 opacity-60"></div>
           <div className="tape -bottom-2 -right-4 rotate-[-15deg] w-20 h-6 opacity-60"></div>
 
@@ -115,7 +131,7 @@ export default function AdminLoginPage() {
             }}
             className="space-y-6 relative z-10"
           >
-            {/* エラーメッセージの表示 */}
+            {/* エラー発生時の警告表示 */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-center gap-3 text-sm animate-pulse">
                 <AlertCircle className="w-4 h-4" />
@@ -127,7 +143,7 @@ export default function AdminLoginPage() {
               </div>
             )}
 
-            {/* メールアドレス入力 */}
+            {/* メールアドレス入力フィールド */}
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-widest text-[#3e2f28]/60 ml-1 font-bold">
                 メールアドレス
@@ -145,7 +161,7 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            {/* パスワード入力 */}
+            {/* パスワード入力フィールド */}
             <div className="space-y-2">
               <label className="text-xs uppercase tracking-widest text-[#3e2f28]/60 ml-1 font-bold">
                 パスワード
@@ -163,6 +179,7 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
+            {/* ログイン実行ボタン */}
             <button
               type="submit"
               disabled={isLoading}
@@ -173,7 +190,7 @@ export default function AdminLoginPage() {
           </form>
         </div>
 
-        {/* 戻るボタン */}
+        {/* 戻るボタン（一般ユーザー用画面へ） */}
         <div className="mt-8 text-center">
           <button
             onClick={() => router.push("/")}

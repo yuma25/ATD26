@@ -1,22 +1,33 @@
+/**
+ * パッケージ: services
+ * アプリケーションのビジネスロジックを提供する。
+ * データベース操作、外部APIとの通信、およびデータのバリデーションを担う。
+ */
+
 import { supabase, supabaseAdmin } from "../lib/supabase";
 import { Badge, BadgeSchema, UserBadge, UserBadgeSchema } from "../types";
 
 /**
- * 【標本（バッジ）サービス】
- * データベース（Supabase）とのデータのやり取りを管理する中心的なクラスです。
- * 実行環境（ブラウザ/サーバー）を判別し、最適な通信経路を自動選択します。
+ * [概要]
+ * 標本（バッジ）およびユーザー進捗の管理を担う中心的なサービスである。
+ * データベース（Supabase）との通信を抽象化し、実行環境（ブラウザ/サーバー）を判別して最適な通信経路を自動選択する。
  */
 export const BadgeService = {
   /**
-   * --- すべての標本情報を取得 ---
-   * データベースに登録されているすべての標本データを取得します。
-   * クライアント側（ブラウザ）では内部API経由、サーバー側では直接DBから取得します。
+   * [概要] すべての標本情報を取得する。
+   * データベースに登録されている全標本データを取得し、Zod スキーマでパースして返却する。
    *
-   * @param {AbortSignal} [signal] - リクエストを中断するためのシグナル
-   * @returns {Promise<Badge[]>} 標本データの配列。エラー時は空配列を返します。
+   * @param signal [AbortSignal] (Optional) リクエストを中断するためのシグナル。
+   * @return badges [Promise<Badge[]>] 標本データの配列。エラー時や中断時は空配列を返却する。
+   *
+   * [技術的ステップ]
+   * 1. 環境判定: typeof window を使用してクライアント側かサーバー側かを判定する。
+   * 2. クライアント側処理: 内部 API (/api/v1/badges) に対して fetch を行い、結果をパースする。
+   * 3. サーバー側処理: supabase クライアントを使用して 'badges' テーブルから直接データをセレクトする。
+   * 4. バリデーション: 取得した生データを BadgeSchema.parse() に通し、型安全性を保証する。
    */
   async getAllBadges(signal?: AbortSignal): Promise<Badge[]> {
-    // 1. クライアント側（ブラウザ）で実行されている場合、専用の内部APIを呼び出します
+    // 1. クライアント側（ブラウザ）で実行されている場合、専用の内部APIを呼び出す。
     if (typeof window !== "undefined") {
       try {
         const res = await fetch("/api/v1/badges", { signal });
@@ -36,7 +47,7 @@ export const BadgeService = {
       }
     }
 
-    // 2. サーバー側で実行されている場合、直接データベースに問い合わせます
+    // 2. サーバー側で実行されている場合、直接データベースに問い合わせる。
     const client = supabaseAdmin || supabase;
     if (!client) return [];
 
@@ -54,12 +65,12 @@ export const BadgeService = {
   },
 
   /**
-   * --- ユーザープロフィールの取得 ---
-   * 指定されたユーザーIDに対応するプロフィール情報（パーティ人数、景品交換フラグなど）を取得します。
+   * [概要] ユーザープロフィールの取得を行う。
+   * 指定されたユーザーIDに対応する属性情報（パーティ人数、景品交換フラグなど）を取得する。
    *
-   * @param {string} userId - 取得対象のユーザーID（UUID）
-   * @param {AbortSignal} [signal] - リクエストを中断するためのシグナル
-   * @returns {Promise<any | null>} プロフィールデータ。見つからない場合やエラー時は null を返します。
+   * @param userId [string] 取得対象ユーザーの UUID。
+   * @param signal [AbortSignal] (Optional) リクエストを中断するためのシグナル。
+   * @return profile [Promise<any | null>] プロフィールデータ。存在しない場合やエラー時は null を返却する。
    */
   async getProfile(userId: string, signal?: AbortSignal) {
     if (typeof window !== "undefined") {
@@ -92,16 +103,21 @@ export const BadgeService = {
   },
 
   /**
-   * --- 標本の獲得を記録 ---
-   * ユーザーが標本を発見したことをデータベースに記録します。
-   * プロフィールが存在しない場合は自動的に作成します。
+   * [概要] 標本の獲得を記録する。
+   * ユーザーが特定の標本を発見・解析完了した事実をデータベースに永続化する。
+   * プロフィールが未作成の場合は自動的に作成を行う（遅延初期化）。
    *
-   * @param {string} userId - 獲得したユーザーのID
-   * @param {string} badgeId - 獲得対象の標本ID
-   * @returns {Promise<{data: UserBadge | null, error: any}>} 登録されたデータ、またはエラーオブジェクト
+   * @param userId [string] 獲得したユーザーのID。
+   * @param badgeId [string] 獲得対象の標本ID。
+   * @return result [Promise<{data: UserBadge | null, error: any}>] 登録されたデータ、または発生したエラー。
+   *
+   * [技術的ステップ]
+   * 1. API呼び出し: クライアント側では /api/v1/badges/acquire を POST で呼び出す。
+   * 2. プロフィール整合性チェック: サーバー側では、外部キー制約違反を防ぐため事前に profiles テーブルを確認し、不在なら作成 (upsert) する。
+   * 3. レコード挿入: 'user_badges' テーブルに user_id と badge_id のペアを挿入する。
+   * 4. バリデーション: 挿入成功後、UserBadgeSchema でデータを検証する。
    */
   async acquireBadge(userId: string, badgeId: string) {
-    // 1. クライアント側（ブラウザ）で実行されている場合、専用のAPIエンドポイントを呼び出します
     if (typeof window !== "undefined") {
       try {
         const res = await fetch("/api/v1/badges/acquire", {
@@ -120,12 +136,11 @@ export const BadgeService = {
       }
     }
 
-    // 2. サーバー側で実行されている場合、直接データベースに問い合わせます
     const client = supabaseAdmin || supabase;
     if (!client)
       throw new Error("データベースクライアントが初期化されていません。");
 
-    // 💡 外部キー制約エラー (23503) 対策: プロフィールの存在を確認し、なければ作成
+    // 外部キー制約エラー (23503) 対策: プロフィールの存在を確認し、なければ作成する。
     try {
       const { data: profile } = await client
         .from("profiles")
@@ -141,7 +156,7 @@ export const BadgeService = {
       console.warn("⚠️ Profile check failed, proceeding anyway:", e);
     }
 
-    // 重複登録を試み、エラーをキャッチしてAPI側に委ねます
+    // 重複登録が発生した場合はエラーを返却し、上位レイヤーでハンドリングさせる。
     const { data, error } = await client
       .from("user_badges")
       .insert({
@@ -155,12 +170,11 @@ export const BadgeService = {
   },
 
   /**
-   * --- 獲得済み標本リストを取得 ---
-   * 指定されたユーザーがこれまでに獲得したすべての標本記録を取得します。
+   * [概要] ユーザーの獲得済み標本リストを取得する。
    *
-   * @param {string} userId - 取得対象のユーザーID
-   * @param {AbortSignal} [signal] - リクエストを中断するためのシグナル
-   * @returns {Promise<UserBadge[]>} 獲得済み標本データの配列
+   * @param userId [string] 対象ユーザーのID。
+   * @param signal [AbortSignal] (Optional) リクエストを中断するためのシグナル。
+   * @return userBadges [Promise<UserBadge[]>] 獲得済みレコードの配列。
    */
   async getAcquiredBadges(
     userId: string,
@@ -201,13 +215,12 @@ export const BadgeService = {
   },
 
   /**
-   * --- 獲得済み標本のIDリストのみを取得 ---
-   * ユーザーが獲得済みの標本IDを配列形式で取得します。
-   * フロントエンドでの重複チェックや表示切り替えに利用します。
+   * [概要] 獲得済み標本のIDリストのみを取得する。
+   * getAcquiredBadges の結果から ID 部分のみを抽出し、フロントエンドでの重複チェックなどを容易にする。
    *
-   * @param {string} userId - 取得対象のユーザーID
-   * @param {AbortSignal} [signal] - リクエストを中断するためのシグナル
-   * @returns {Promise<string[]>} 獲得済み標本ID（文字列）の配列
+   * @param userId [string] 対象ユーザーのID。
+   * @param signal [AbortSignal] (Optional) リクエストを中断するためのシグナル。
+   * @return badgeIds [Promise<string[]>] 標本IDの文字列配列。
    */
   async getAcquiredBadgeIds(
     userId: string,
@@ -218,14 +231,14 @@ export const BadgeService = {
   },
 
   /**
-   * --- プロフィールの更新 ---
-   * ユーザーのプロフィール情報（パーティ人数や景品交換状況など）を更新します。
+   * [概要] プロフィール情報の更新を行う。
+   * ユーザーの属性情報（パーティ人数や景品交換状況など）を upsert により更新する。
    *
-   * @param {string} userId - 更新対象のユーザーID
-   * @param {Object} updates - 更新内容
-   * @param {number} [updates.party_size] - パーティ（グループ）の人数
-   * @param {boolean} [updates.is_exchanged] - 景品交換が完了したかどうか
-   * @returns {Promise<boolean>} 更新に成功した場合は true、失敗した場合は false を返します。
+   * @param userId [string] 更新対象ユーザーのID。
+   * @param updates [Object] 更新内容。
+   * @param updates.party_size [number] (Optional) パーティ（グループ）の人数。
+   * @param updates.is_exchanged [boolean] (Optional) 景品交換が完了したかどうか。
+   * @return success [Promise<boolean>] 更新に成功した場合は true、失敗した場合は false を返却する。
    */
   async updateProfile(
     userId: string,

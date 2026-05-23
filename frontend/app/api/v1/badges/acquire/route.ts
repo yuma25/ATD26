@@ -3,15 +3,26 @@ import { BadgeService } from "@backend/services/badgeService";
 import { AcquireBadgeRequestSchema } from "@backend/types";
 
 /**
- * 【標本獲得API】
- * 冒険者が新しい標本を発見した際に、その記録をデータベースに保存します。
- * 重複したリクエスト（すでに獲得済みの標本）に対しても、エラーではなく
- * 成功レスポンスを返す「冪等性（べきとうせい）」を備えています。
+ * パッケージ: app/api/v1/badges/acquire
+ * ユーザーによる標本獲得の記録を永続化するエンドポイントを提供する。
  */
 
+/**
+ * [概要] 標本獲得の記録をデータベースに保存する。
+ * 冒険者が新しい標本を発見した際に呼び出され、user_badges テーブルにレコードを挿入する。
+ *
+ * @param request [Request] HTTP リクエストオブジェクト。ボディに userId と badgeId を含む。
+ * @return response [NextResponse] 記録結果またはエラー情報を含む JSON。
+ *
+ * [技術的ステップ]
+ * 1. バリデーション: Zod スキーマ (AcquireBadgeRequestSchema) を用いてリクエストボディの型安全性を実行時に検証する。
+ * 2. 永続化実行: BadgeService.acquireBadge を呼び出し、内部でプロフィール不在時の自動作成とレコード挿入を行う。
+ * 3. 冪等性の担保: 重複登録（一意制約違反: 23505）が発生した場合、エラーを返さず「既に獲得済み」として成功レスポンスを返却する。
+ * 4. 異常系処理: その他のデータベースエラーや通信エラーが発生した場合は、標準化されたエラー形式で 500 レスポンスを返却する。
+ */
 export async function POST(request: Request) {
   try {
-    // 1. リクエストボディの厳密な検証
+    // 1. リクエストボディの厳密な検証を行う。
     const body = await request.json();
     const result = AcquireBadgeRequestSchema.safeParse(body);
 
@@ -36,11 +47,11 @@ export async function POST(request: Request) {
 
     const { userId, badgeId } = result.data;
 
-    // 2. 標本サービスを使用して、獲得記録の保存を試みます
+    // 2. サービスレイヤーを介して獲得記録の保存を試みる。
     const { data, error } = await BadgeService.acquireBadge(userId, badgeId);
 
-    // 3. 重複チェック（PostgreSQL の一意制約違反: エラーコード 23505）
-    // 💡 既に獲得済みの場合、サービス層から特別なフラグやエラーコードが返されます
+    // 3. 一意制約違反（既に登録済み）のハンドリング。
+    // クライアント側での重複リクエストを許容し、ユーザー体験を損なわないようにする。
     if (error?.code === "23505") {
       console.log(
         `ℹ️ [API_BADGES_ACQUIRE] 重複リクエストを許容: user=${userId}, badge=${badgeId}`,
@@ -54,12 +65,12 @@ export async function POST(request: Request) {
       });
     }
 
-    // 4. その他のデータベースエラー
+    // 4. 想定外のエラーが発生した場合は例外としてスローする。
     if (error) {
       throw error;
     }
 
-    // 5. 正常終了：保存された獲得記録を返します
+    // 5. 正常終了：保存されたレコード情報を返却する。
     return NextResponse.json({
       success: true,
       data,

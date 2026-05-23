@@ -6,16 +6,21 @@ import { Award, AlertTriangle, Ticket } from "lucide-react";
 import { Badge } from "@backend/types";
 
 /**
- * FinalLogModalコンポーネントのプロパティ
- * @interface FinalLogModalProps
- * @property {boolean} show - モーダルを表示するかどうかのフラグ
- * @property {() => void} onClose - モーダルを閉じるためのコールバック関数
- * @property {string} completionTime - 全標本を発見し終えた日時の文字列
- * @property {string} fullUserId - ユーザーのUUID
- * @property {string} [displayId] - 画面表示用のユーザーID（ニックネームや短縮ID）
- * @property {Badge[]} badges - 発見した全標本のデータ配列
- * @property {boolean} isExchanged - すでに景品と交換済みかどうか
- * @property {() => Promise<boolean>} onExchange - 交換処理を実行する非同期関数
+ * パッケージ: components/journal
+ * コンプリート達成時の演出や景品交換に関連する UI コンポーネントを提供する。
+ */
+
+/**
+ * [概要] FinalLogModal コンポーネントのプロパティ定義である。
+ *
+ * @param show [boolean] モーダルを表示するかどうかのフラグ。
+ * @param onClose [() => void] モーダルを閉じるためのコールバック関数。
+ * @param completionTime [string] 全標本を発見し終えた日時の文字列。
+ * @param fullUserId [string] ユーザーの UUID。
+ * @param displayId [string] (Optional) 画面表示用のユーザー ID。
+ * @param badges [Badge[]] 発見した全標本のデータ配列。
+ * @param isExchanged [boolean] すでに景品と交換済みかどうかを示すフラグ。
+ * @param onExchange [() => Promise<boolean>] 交換処理を実行する非同期関数。
  */
 interface FinalLogModalProps {
   show: boolean;
@@ -29,12 +34,14 @@ interface FinalLogModalProps {
 }
 
 /**
- * 【最終ログ（景品交換）モーダル】
- * すべての標本をコンプリートした際に表示される、特別なアチーブメント画面です。
- * 「景品交換チケット」を模したデザインで、スタッフによる景品交換の確認機能を含みます。
+ * [概要] 全ての標本をコンプリートした際に表示される特別なアチーブメント（景品交換）モーダルである。
+ * 「景品交換チケット」を模したデザインを採用し、スタッフによる確認ステップを経て交換処理を完了させる。
  *
- * @param {FinalLogModalProps} props - コンポーネントのプロパティ
- * @returns {JSX.Element} 最終ログモーダルのUI
+ * [技術的ステップ]
+ * 1. 2段階確認: 誤操作を防ぐため、Redeem ボタン押下後にスタッフ専用の確認画面を表示するステート管理を行う。
+ * 2. 交換処理: onExchange プロップスを介してサーバーに交換済みフラグを送信し、完了後に UI を更新する。
+ * 3. デザイン実装: チケットの切り取り線や勲章、半券（スタブ）の構造を CSS およびアイコンで表現し、物理的なチケットのような質感を提供する。
+ * 4. レスポンシブ: モバイル端末での閲覧を考慮し、アスペクト比を維持したままスケーリングするアニメーションを適用する。
  */
 export const FinalLogModal = ({
   show,
@@ -46,9 +53,15 @@ export const FinalLogModal = ({
   isExchanged,
   onExchange,
 }: FinalLogModalProps) => {
-  const [confirmStep, setConfirmStep] = useState(0); // 0: 初期, 1: 確認中
+  /** 確認ステップの状態（0: 初期, 1: 注意喚起） */
+  const [confirmStep, setConfirmStep] = useState(0);
+  /** 交換リクエストの実行中フラグ */
   const [exchanging, setExchanging] = useState(false);
 
+  /**
+   * [概要] 景品交換リクエストを実行する。
+   * 成功した場合、確認ステップをリセットする。
+   */
   const handleExchange = async () => {
     setExchanging(true);
     const ok = await onExchange();
@@ -62,7 +75,7 @@ export const FinalLogModal = ({
     <AnimatePresence>
       {show && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 sm:p-12 overflow-y-auto">
-          {/* 背景のオーバーレイ */}
+          {/* 背景のオーバーレイ（ぼかし効果付き） */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -71,7 +84,7 @@ export const FinalLogModal = ({
             className="fixed inset-0 bg-[#1a1512]/95 backdrop-blur-md no-print"
           />
 
-          {/* チケット本体（常に横長レイアウト） */}
+          {/* チケット本体：3D 的な傾きを伴う登場アニメーションを適用 */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0, rotateX: 20 }}
             animate={{ scale: 1, opacity: 1, rotateX: 0 }}
@@ -79,9 +92,9 @@ export const FinalLogModal = ({
             className="relative w-full max-w-4xl flex flex-row bg-[#fdfaf2] border-[1px] border-[#3e2f28]/40 shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden rounded-lg min-h-[220px]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 💡 左側：メインチケット情報 */}
+            {/* 💡 左側：メインチケット情報（発行日、ID、進捗ゲージ） */}
             <div className="flex-1 p-3 sm:p-10 border-r-2 border-dashed border-[#3e2f28]/20 relative">
-              {/* 切り取り線風の装飾 */}
+              {/* チケット特有の切り抜き装飾 */}
               <div className="absolute -top-4 -right-4 w-8 h-8 bg-[#1a1512] rounded-full" />
               <div className="absolute -bottom-4 -right-4 w-8 h-8 bg-[#1a1512] rounded-full" />
 
@@ -124,7 +137,7 @@ export const FinalLogModal = ({
                   </div>
                 </div>
 
-                {/* ゲージ（モバイルでは極小） */}
+                {/* 全標本の収集進捗を視覚化するドットゲージ */}
                 <div className="flex gap-0.5 sm:gap-1.5 py-1">
                   {badges.map((_, i) => (
                     <div
@@ -147,13 +160,13 @@ export const FinalLogModal = ({
               </div>
             </div>
 
-            {/* 💡 右側：交換スタブ（半券） - モバイルでは幅を調整 */}
+            {/* 💡 右側：交換スタブ（半券）セクション */}
             <div className="w-36 sm:w-64 bg-[#f9f5e9] p-2 sm:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden flex-shrink-0">
               <Ticket className="absolute -top-6 -right-6 text-[#3e2f28]/5 w-24 h-24 sm:w-32 sm:h-32 rotate-12" />
 
               <div className="relative z-10 w-full space-y-3 sm:space-y-6">
                 {isExchanged ? (
-                  /* --- 交換済み状態 --- */
+                  /* --- [状態] 既に交換が完了している場合 --- */
                   <motion.div
                     initial={{ scale: 0.5, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -173,7 +186,7 @@ export const FinalLogModal = ({
                     </button>
                   </motion.div>
                 ) : confirmStep === 0 ? (
-                  /* --- ステップ0: 初期表示 --- */
+                  /* --- [状態] 交換前の初期画面 --- */
                   <div className="space-y-3 sm:space-y-4 w-full px-1">
                     <div className="space-y-0.5">
                       <p className="text-[6px] sm:text-[9px] font-black text-amber-600 uppercase tracking-widest whitespace-nowrap">
@@ -197,7 +210,7 @@ export const FinalLogModal = ({
                     </button>
                   </div>
                 ) : (
-                  /* --- ステップ1: 2段階確認（注意喚起） --- */
+                  /* --- [状態] スタッフ確認用（2段階目） --- */
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -213,6 +226,7 @@ export const FinalLogModal = ({
                       </p>
                     </div>
                     <div className="space-y-1 pt-2">
+                      {/* 交換確定ボタン */}
                       <button
                         disabled={exchanging}
                         onClick={handleExchange}
@@ -220,6 +234,7 @@ export const FinalLogModal = ({
                       >
                         引き換え実行
                       </button>
+                      {/* キャンセルボタン */}
                       <button
                         onClick={() => setConfirmStep(0)}
                         className="w-full py-1 text-[8px] sm:text-[9px] font-bold text-[#3e2f28]/40 uppercase tracking-widest whitespace-nowrap"

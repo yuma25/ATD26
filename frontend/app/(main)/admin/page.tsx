@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * パッケージ: app/(main)/admin
+ * 管理者専用のダッシュボード機能を提供する。
+ */
+
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@backend/lib/supabase";
@@ -33,32 +38,57 @@ import {
 
 // --- 型定義 ---
 
+/**
+ * 全体統計データの構造
+ */
 interface Stats {
+  /** 総来場者数（パーティ人数の合計） */
   totalVisitors: number;
+  /** アプリを利用した総デバイス数 */
   totalDevices: number;
+  /** 全ユーザーが獲得した標本の総数 */
   totalBadges: number;
+  /** 最近アクティブだったユーザーのリスト */
   recentUsers: {
     id: string;
     party_size: number;
     created_at: string;
     last_seen: string | null;
   }[];
+  /** 時系列統計データ（グラフ用） */
   hourlyStats: { hour: string; devices: number; badges: number }[];
+  /** 統計の集計期間 ("1h", "24h", "all") */
   period: string;
 }
 
+/**
+ * 個別ユーザーの詳細データの構造
+ */
 interface UserDetails {
   id: string;
   party_size: number;
   created_at: string;
   last_seen: string | null;
+  /** ユーザーが獲得した標本の詳細リスト */
   badges?: {
     acquired_at: string;
     badges: { name: string; target_index: number };
   }[];
 }
 
+/**
+ * [概要] 管理者ダッシュボードのメインコンポーネントである。
+ * 全体の利用統計の可視化（Recharts 使用）および個別ユーザーの検索・照会機能を提供する。
+ *
+ * [技術的ステップ]
+ * 1. 認可ガード: initDashboard 関数にてセッションを確認し、管理者でない場合はログイン画面へ強制リダイレクトする。
+ * 2. 統計取得: fetchStats 関数で内部 API (/api/v1/admin/stats) を呼び出し、Redis キャッシュを活用した高速なデータ取得を行う。
+ * 3. 動的更新: 集計期間 (period) の変更を検知し、自動的に統計データを再取得する。
+ * 4. ユーザー検索: ユーザー ID による部分一致検索をサポートし、獲得済み標本のリストを詳細カードとして表示する。
+ * 5. 時系列描画: ResponsiveContainer および AreaChart を用い、デバイス数と標本発見数の推移をグラフィカルに提示する。
+ */
 export default function AdminDashboard() {
+  // --- 状態管理 (State) ---
   const [stats, setStats] = useState<Stats | null>(null);
   const [period, setPeriod] = useState("24h");
   const [isLoading, setIsLoading] = useState(true);
@@ -75,8 +105,10 @@ export default function AdminDashboard() {
   const router = useRouter();
   const isInitialized = useRef(false);
 
+  /**
+   * マウント状態の管理（クライアントサイド限定の描画制御用）。
+   */
   useEffect(() => {
-    // 同期的な setState によるカスケードレンダリングを避けるため、実行を遅らせます
     const timer = setTimeout(() => {
       setIsMounted(true);
     }, 0);
@@ -86,6 +118,9 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  /**
+   * リアルタイム時計の更新。
+   */
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -104,6 +139,10 @@ export default function AdminDashboard() {
     return () => clearInterval(timer);
   }, []);
 
+  /**
+   * [概要] 統計データを API から取得する。
+   * @param isInitial [boolean] 初回読み込みかどうか。
+   */
   const fetchStats = useCallback(
     async (isInitial = false) => {
       if (!isInitial) setIsRefreshing(true);
@@ -113,6 +152,8 @@ export default function AdminDashboard() {
         const {
           data: { session },
         } = await supabase.auth.getSession();
+
+        // 認証トークンをヘッダーに含めてリクエストを送信する。
         const res = await fetch(`/api/v1/admin/stats?period=${period}`, {
           headers: { Authorization: `Bearer ${session?.access_token}` },
           signal: controller.signal,
@@ -137,13 +178,19 @@ export default function AdminDashboard() {
     [period],
   );
 
+  /**
+   * [概要] 管理者セッションの初期化と権限確認を行う。
+   */
   const initDashboard = useCallback(async () => {
     if (!supabase) return;
     const {
       data: { session },
     } = await supabase.auth.getSession();
+
+    // メールログインかつ非匿名ユーザーのみを管理者とみなす。
     const isEmailUser = session?.user?.app_metadata?.provider === "email";
     const isAnonymous = session?.user?.is_anonymous;
+
     if (!session || isAnonymous || !isEmailUser) {
       router.replace("/admin/login");
       return;
@@ -152,6 +199,10 @@ export default function AdminDashboard() {
     void fetchStats(true);
   }, [router, fetchStats]);
 
+  /**
+   * [概要] 特定のユーザー ID で詳細情報を検索する。
+   * @param id [string] 検索対象のユーザーID（UUID）。
+   */
   const searchUser = useCallback(async (id: string) => {
     if (!id) return;
     setIsSearching(true);
@@ -175,6 +226,7 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  // 初期化の実行。
   useEffect(() => {
     if (!isInitialized.current) {
       isInitialized.current = true;
@@ -182,12 +234,16 @@ export default function AdminDashboard() {
     }
   }, [initDashboard]);
 
+  // 期間変更時の自動再取得。
   useEffect(() => {
     if (isInitialized.current && !isLoading) {
       void fetchStats();
     }
   }, [period, fetchStats, isLoading]);
 
+  /**
+   * ログアウト処理。
+   */
   const handleLogout = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -200,6 +256,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-[#e8e2d2] text-[#3e2f28] font-sans pb-20">
       <NavigationBar onLogout={handleLogout} currentTime={currentTime} />
       <main className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
+        {/* ユーザー照会セクション */}
         <section className="space-y-4">
           <SearchBar
             value={searchId}
@@ -218,7 +275,10 @@ export default function AdminDashboard() {
             />
           )}
         </section>
+
+        {/* 統計概況セクション */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* 左側：最近のユーザーリスト */}
           <RecentExplorersList
             users={stats?.recentUsers || []}
             onSelectUser={(id) => {
@@ -226,6 +286,7 @@ export default function AdminDashboard() {
               void searchUser(id);
             }}
           />
+          {/* 右側：数値カードおよびグラフ */}
           <div className="lg:col-span-2 space-y-6 lg:order-1">
             <StatsOverview
               stats={stats}
@@ -242,6 +303,9 @@ export default function AdminDashboard() {
   );
 }
 
+/**
+ * [概要] ロード中画面を表示するコンポーネントである。
+ */
 function LoadingScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#e8e2d2]">
@@ -255,6 +319,9 @@ function LoadingScreen() {
   );
 }
 
+/**
+ * [概要] 管理者パネルの共通ナビゲーションバーである。
+ */
 function NavigationBar({
   onLogout,
   currentTime,
@@ -298,6 +365,9 @@ function NavigationBar({
   );
 }
 
+/**
+ * [概要] ユーザー ID による検索バーコンポーネントである。
+ */
 function SearchBar({
   value,
   onChange,
@@ -333,6 +403,9 @@ function SearchBar({
   );
 }
 
+/**
+ * [概要] 検索されたユーザーの詳細情報を表示するカードコンポーネントである。
+ */
 function UserDetailsCard({
   user,
   error,
@@ -440,6 +513,9 @@ function UserDetailsCard({
   );
 }
 
+/**
+ * [概要] 直近でアクティブだったユーザーを一覧表示するサイドバーコンポーネントである。
+ */
 function RecentExplorersList({
   users,
   onSelectUser,
@@ -484,6 +560,9 @@ function RecentExplorersList({
   );
 }
 
+/**
+ * [概要] 数値統計カードとアクティビティ推移グラフを統合して表示するコンポーネントである。
+ */
 function StatsOverview({
   stats,
   period,
@@ -501,6 +580,7 @@ function StatsOverview({
 }) {
   return (
     <>
+      {/* 期間切り替え UI */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <h2 className="text-2xl font-black tracking-tight">全体統計</h2>
         <div className="flex bg-white rounded-xl border border-[#3e2f28]/10 p-1 shadow-sm">
@@ -515,6 +595,8 @@ function StatsOverview({
           ))}
         </div>
       </div>
+
+      {/* 統計数値カードのグリッド */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatsCard
           label="総来場者数"
@@ -545,6 +627,8 @@ function StatsOverview({
           color="green"
         />
       </div>
+
+      {/* 推移グラフセクション */}
       <div className="bg-white rounded-2xl border border-[#3e2f28]/10 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-[#3e2f28]/5 flex items-center justify-between bg-gray-50/50">
           <h3 className="font-bold flex items-center gap-2 text-sm">
@@ -628,6 +712,9 @@ function StatsOverview({
   );
 }
 
+/**
+ * [概要] 統計数値を表示するためのカードコンポーネントである。
+ */
 function StatsCard({
   label,
   value,

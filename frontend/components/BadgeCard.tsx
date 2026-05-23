@@ -18,16 +18,22 @@ import {
 import { Badge } from "@backend/types";
 
 /**
- * アイコンリスト
+ * パッケージ: components
+ * ホーム画面および一覧表示に関連する UI コンポーネントを提供する。
+ */
+
+/**
+ * [概要] 各標本のアイコンリストの定義である。
+ * target_index をキーとして、表示に使用するアイコンを選択する。
  */
 const IconList: LucideIcon[] = [Bug, MapPin, Shell, Sword, Waves, CircleDot];
 
 /**
- * BadgeCardコンポーネントのプロパティ
- * @interface BadgeCardProps
- * @property {Badge} badge - 表示対象の標本データ
- * @property {boolean} isAcquired - ユーザーがこの標本を獲得済みかどうか
- * @property {() => void} [onSaveScroll] - 詳細画面に遷移する前に現在のスクロール位置を保存するための関数
+ * [概要] BadgeCard コンポーネントのプロパティ定義である。
+ *
+ * @param badge [Badge] 表示対象の標本データ。
+ * @param isAcquired [boolean] ユーザーがこの標本を獲得済みかどうかを示すフラグ。
+ * @param onSaveScroll [() => void] (Optional) 詳細画面への遷移前にスクロール位置を保存するコールバック。
  */
 interface BadgeCardProps {
   badge: Badge;
@@ -36,13 +42,14 @@ interface BadgeCardProps {
 }
 
 /**
- * 【標本カード】
- * 図鑑（ホーム画面）で各標本の状態を表示するカードコンポーネントです。
- * 未獲得の場合はロック表示となり、獲得済みの場合は詳細ビューアーへのリンクが有効になります。
- * 誤操作防止のため、クリック時に「観察開始」の確認ステップを設けています。
+ * [概要] 標本一覧（ジャーナル）における個別の作品カードを表示するコンポーネントである。
+ * 未獲得の状態ではロック表示を行い、獲得済みの場合のみ詳細ビューワーへのアクセスを許可する。
  *
- * @param {BadgeCardProps} props - コンポーネントのプロパティ
- * @returns {JSX.Element} 標本カードのUI
+ * [技術的ステップ]
+ * 1. 状態制御: 獲得済みの場合、クリック時に「観察開始」の確認オーバーレイを表示する二段階の操作フローを持つ。
+ * 2. 動的アイコン: badge.target_index に基づき、IconList から適切な Lucide アイコンを選択する。
+ * 3. アニメーション: framer-motion の whileInView を使用し、スクロールに合わせてカードが浮き上がる演出を行う。
+ * 4. 遷移処理: 確認ボタン押下時に、URL パラメータに標本情報を付与して /viewer ページへ遷移させる。
  */
 export const BadgeCard = ({
   badge,
@@ -50,11 +57,17 @@ export const BadgeCard = ({
   onSaveScroll,
 }: BadgeCardProps) => {
   const router = useRouter();
+  /** 確認オーバーレイの表示状態 */
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // target_index をもとにアイコンを決定し、フォールバックとして CircleDot を使用する。
   const Icon = IconList[badge.target_index] || CircleDot;
   const locked = !isAcquired;
 
+  /**
+   * [概要] 作品詳細ビューワーページへ遷移する。
+   * 遷移前に現在のスクロール位置を保存し、復帰時の利便性を確保する。
+   */
   const handleOpenViewer = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (locked) return;
@@ -71,6 +84,10 @@ export const BadgeCard = ({
       viewport={{ once: true }}
       className="w-full flex justify-center"
     >
+      {/* 
+        カード本体。
+        未獲得 (locked) 時は点線の枠線と透過背景、獲得時は実線の枠線と背景色を適用する。
+      */}
       <div
         onClick={() => !locked && setShowConfirm(true)}
         className={`
@@ -82,7 +99,7 @@ export const BadgeCard = ({
           }
         `}
       >
-        {/* 表面のコンテンツ：確認画面が表示されていない時のみ表示 */}
+        {/* 表面のコンテンツ：確認画面が表示されていない時のみ表示する。 */}
         {!showConfirm && (
           <>
             {/* アイコンエリア */}
@@ -94,7 +111,7 @@ export const BadgeCard = ({
               )}
             </div>
 
-            {/* テキストエリア */}
+            {/* テキストエリア（作品名および作者名） */}
             <div className="text-center px-1 w-full overflow-hidden">
               <h3
                 className={`font-bold italic font-serif leading-tight whitespace-nowrap ${
@@ -125,7 +142,7 @@ export const BadgeCard = ({
               )}
             </div>
 
-            {/* 下部の装飾（未選択時） */}
+            {/* ガイダンス表示 */}
             {!locked && (
               <div className="flex items-center gap-1 text-[6px] font-bold text-[#3e2f28]/10 uppercase mt-1">
                 <span>View Details</span>
@@ -134,7 +151,7 @@ export const BadgeCard = ({
           </>
         )}
 
-        {/* --- 確認用オーバーレイ (インライン) --- */}
+        {/* --- 確認用オーバーレイ (インライン表示) --- */}
         <AnimatePresence>
           {showConfirm && (
             <motion.div
@@ -144,6 +161,7 @@ export const BadgeCard = ({
               className="absolute inset-0 bg-[#3e2f28] z-50 p-4 flex flex-col items-center justify-center text-center gap-3"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* オーバーレイを閉じるボタン */}
               <button
                 onClick={() => setShowConfirm(false)}
                 className="absolute top-1 right-1 p-1.5 text-white/40 hover:text-white"
@@ -155,6 +173,7 @@ export const BadgeCard = ({
                 Open Archive?
               </p>
 
+              {/* ビューワー起動ボタン */}
               <button
                 onClick={handleOpenViewer}
                 className="w-full py-2 bg-white text-[#3e2f28] flex items-center justify-center gap-1.5 hover:bg-[#e8e2d2] transition-colors shadow-lg"

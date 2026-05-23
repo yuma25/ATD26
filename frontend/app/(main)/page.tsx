@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * パッケージ: app/(main)
+ * アプリケーションのメインエントリポイント（ホーム画面）を提供する。
+ */
+
 import { useState, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -17,58 +22,71 @@ import { BadgeCard } from "@/components/BadgeCard";
 import { calculateProgress } from "@backend/lib/logic";
 import { useScrollManager } from "@/hooks/useScrollManager";
 import { FinalLogModal } from "@/components/journal/FinalLogModal";
-
-import { useRouter } from "next/navigation"; // 💡 追加
+import { useRouter } from "next/navigation";
 
 /**
- * 【ホーム画面（冒険者の手記）】
- * アプリのメイン画面です。標本の一覧表示、進捗状況の確認、
- * ARカメラの起動など、主要な機能が集約されています。
+ * [概要] ホーム画面（冒険者の手記）のコンポーネントである。
+ * 標本の収集状況の可視化、AR スキャンの起動、および収集完了後の景品交換機能を提供する。
+ *
+ * [技術的ステップ]
+ * 1. データ統合: useHome カスタムフックを介して、標本データ、獲得状況、ユーザー設定を統合的に取得する。
+ * 2. 同期演出: initialLoading フラグに基づき、初回起動時のデータ同期オーバーレイを表示する。
+ * 3. スクロール管理: useScrollManager を使用し、AR 画面から戻った際に直前まで見ていた標本カードの位置へ自動復帰させる。
+ * 4. 進捗計算: 獲得済み標本数をもとに、画面中央のタイムラインゲージの長さを動的に制御する。
+ * 5. 導線制御: URL パラメータ (openExchange) を監視し、AR 獲得画面からの戻り時に即座に交換モーダルを展開する。
  */
 export default function Home() {
   // --- カスタムフックから状態と関数を取得 ---
   const {
-    badges, // 標本データの一覧
-    syncing, // 同期中フラグ
-    initialLoading, // 💡 初回ロード中フラグ
-    fullUserId, // 内部処理用ID
-    displayId, // 💡 表示用ID
-    partySize, // 来場人数
-    isExchanged, // 💡 追加：交換済みフラグ
-    showPartyInput, // 人数入力モーダルの表示フラグ
-    cameraPermission, // カメラ権限の状態
-    isAcquired, // 指定したIDの標本獲得済みか判定する関数
-    requestCameraPermission, // カメラ権限をリクエストする関数
-    updatePartySize, // 人数を更新する関数
-    exchangePrize, // 💡 追加：交換実行関数
+    badges, // 全標本データの配列
+    syncing, // バックグラウンドでの同期（検証）中フラグ
+    initialLoading, // 初回データロード中フラグ
+    fullUserId, // ユーザーの UUID
+    displayId, // 画面表示用の短縮 ID
+    partySize, // 登録されたパーティ人数
+    isExchanged, // 景品交換済みフラグ
+    showPartyInput, // 人数入力が必要かどうかの判定フラグ
+    cameraPermission, // 現在のカメラ権限の状態
+    isAcquired, // 特定標本の獲得状況を判定する関数
+    requestCameraPermission, // 権限リクエスト関数
+    updatePartySize, // 人数保存関数
+    exchangePrize, // 交換記録関数
   } = useHome();
 
-  const { saveScroll, restoreScroll } = useScrollManager(); // スクロール位置の管理
-  const router = useRouter(); // 💡 画面遷移のために追加
+  const { saveScroll, restoreScroll } = useScrollManager();
+  const router = useRouter();
 
-  const [showFinalLog, setShowFinalLog] = useState(false); // コンプリート記念モーダルの表示管理
-  const [inputValue, setInputValue] = useState("1"); // 💡 人数入力用の状態
+  /** コンプリート記念（景品交換）モーダルの表示フラグ */
+  const [showFinalLog, setShowFinalLog] = useState(false);
+  /** 人数入力用のローカルステート */
+  const [inputValue, setInputValue] = useState("1");
 
-  // --- ライフサイクル処理 ---
-  // 💡 修正: URLパラメータ openExchange=true があれば自動で引き換えモーダルを開く
+  // --- ライフサイクル制御 ---
+
+  /**
+   * [概要] 獲得完了直後の遷移（URLパラメータ）を検知し、モーダルを自動展開する。
+   */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("openExchange") === "true") {
-      // 💡 非同期にステートを更新することでカスケードレンダリングを防止
-      setTimeout(() => setShowFinalLog(true), 0);
-      // パラメータを消して、リロードしても開きっぱなしにならないようにする
+      if (params.get("openExchange") === "true") {
+        // 💡 カスケードレンダリング警告を回避するため、実行を次フレームへ遅延させる。
+        setTimeout(() => setShowFinalLog(true), 0);
+        // パラメータを消去し、リロード時にモーダルが開きっぱなしにならないようにする。
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+      }
       const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
     }
   }, []);
-  // 1. 獲得済みの標本数をカウントします
+
+  // 現在の獲得状況を集計する。
   const acquiredCount = badges.filter((b: Badge) => isAcquired(b.id)).length;
-  // 2. すべての標本を集めたか判定します
   const isComplete = badges.length > 0 && acquiredCount === badges.length;
-  // 3. 進捗率（0-100%）を計算します
   const progressPercentage = calculateProgress(badges.length, acquiredCount);
 
-  // 4. コンプリートした時刻を整形します（メモ化して再計算を抑制）
+  /** コンプリート達成時刻の文字列。 */
   const completionTime = useMemo(() => {
     if (!isComplete) return "";
     return new Date().toLocaleString("ja-JP", {
@@ -80,10 +98,10 @@ export default function Home() {
     });
   }, [isComplete]);
 
-  // --- ライフサイクル処理 ---
-  // マウント時や初回ロード完了時にスクロール位置を復元します
+  /**
+   * [概要] ページ遷移（AR起動）の際、スクロール位置を復元する。
+   */
   useEffect(() => {
-    // 初回ロードが完了し、データが存在する場合に実行
     if (!initialLoading && badges.length > 0) {
       const timer = setTimeout(() => {
         restoreScroll();
@@ -93,24 +111,26 @@ export default function Home() {
   }, [initialLoading, badges, restoreScroll]);
 
   // --- ユーザーアクション ---
+
   /**
-   * ARカメラを起動します
+   * [概要] AR カメラ画面を起動する。
+   * 権限確認およびスクロール位置の保存を先行して行う。
    */
   const handleLaunchAR = async () => {
-    // 1. カメラ権限がない場合はリクエストします
+    // カメラ権限が未取得の場合はリクエストを行う。
     if (cameraPermission !== "granted") {
       const ok = await requestCameraPermission();
-      if (!ok) return; // 権限が得られなければ中断
+      if (!ok) return;
     }
-    // 2. 現在のスクロール位置を保存します
+    // 復帰時のために現在のスクロール位置を記録。
     saveScroll();
-    // 3. AR画面へ遷移します
+    // A-Frame の起動（ページ全体のリロードを伴うため window.location を使用）。
     window.location.href = "/ar";
   };
 
   return (
     <div className="min-h-screen font-serif selection:bg-[#d4c5a9] text-[#3e2f28] flex flex-col relative">
-      {/* 💡 初回ロード中のオーバーレイ（データが空の場合のみ） */}
+      {/* 💡 データ同期中の全画面オーバーレイ（初回起動時のみ） */}
       <AnimatePresence>
         {initialLoading && badges.length === 0 && (
           <motion.div
@@ -132,11 +152,11 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* --- ヘッダー領域 --- */}
+      {/* --- ヘッダー領域：ロゴ、ID、アクションボタン --- */}
       <header className="fixed top-0 left-0 right-0 z-[100] bg-[#e8e2d2]/90 backdrop-blur-md px-4 sm:px-8 py-6 sm:py-10 flex items-center justify-between border-b border-[#3e2f28]/10 shadow-sm">
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* 管理者ログイン画面への入り口（下手に隠さず、アイコンとして配置） */}
+            {/* 管理者ログインへの隠し味的なエントリポイント */}
             <button
               onClick={() => router.push("/admin/login")}
               className="focus:outline-none active:scale-95 transition-transform group relative"
@@ -156,13 +176,13 @@ export default function Home() {
             </h1>
           </div>
           <div className="pl-7 sm:pl-9 flex items-center gap-3 text-[#3e2f28]/60">
-            {/* 表示用IDの表示（管理者の場合は専用形式） */}
+            {/* 識別情報の提示 */}
             {displayId && (
               <p className="font-mono text-[7px] sm:text-[10px] font-bold tracking-tight opacity-70 break-all leading-tight max-w-[180px] sm:max-w-none">
                 ID: {displayId}
               </p>
             )}
-            {/* 人数情報の表示 */}
+            {/* パーティ人数の明示 */}
             {typeof partySize === "number" && partySize > 0 && (
               <div className="flex items-center gap-1 text-[10px] font-bold border-l border-[#3e2f28]/10 pl-3 h-3">
                 <Users size={10} />
@@ -172,7 +192,7 @@ export default function Home() {
           </div>
         </div>
         <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0">
-          {/* 同期中のインジケーター */}
+          {/* バックグラウンド同期中を示す回転アイコン */}
           <AnimatePresence>
             {syncing && (
               <RefreshCcw
@@ -181,7 +201,7 @@ export default function Home() {
               />
             )}
           </AnimatePresence>
-          {/* ARカメラ起動ボタン */}
+          {/* AR カメラ起動ボタン */}
           <button
             onClick={() => {
               void handleLaunchAR();
@@ -193,10 +213,10 @@ export default function Home() {
         </div>
       </header>
 
-      {/* --- メインコンテンツ領域 --- */}
+      {/* --- メインコンテンツ領域：タイムライン形式の標本リスト --- */}
       <main className="max-w-xl mx-auto px-8 pt-40 sm:pt-56 pb-40 relative flex-1 w-full z-10">
         <div className="relative">
-          {/* タイムラインの中央線と進捗ゲージ */}
+          {/* 画面中央を貫くタイムライン軸と進捗ゲージ */}
           <div className="absolute left-[50%] top-0 bottom-0 w-[4px] -translate-x-1/2 overflow-hidden opacity-40">
             <div className="absolute inset-0 w-full h-full border-l border-dashed border-[#3e2f28]/10" />
             <motion.div
@@ -212,7 +232,7 @@ export default function Home() {
             />
           </div>
 
-          {/* 入口（Entry）アイコン */}
+          {/* 入口（探索開始地点）のシンボル */}
           <div className="relative z-10 flex flex-col items-center mb-40">
             <div className="relative">
               <div className="absolute inset-0 -m-4 border border-[#3e2f28]/10 rounded-full scale-110 border-dashed animate-[spin_30s_linear_infinite]" />
@@ -229,7 +249,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 標本カード一覧 */}
+          {/* 標本カード（各作品）のレンダリング */}
           <div className="space-y-24 relative z-20">
             {badges.map((badge) => (
               <BadgeCard
@@ -241,7 +261,7 @@ export default function Home() {
             ))}
           </div>
 
-          {/* ゴール（完了）ボタン */}
+          {/* ゴール（探索完了地点）のシンボルおよびボタン */}
           <div className="relative z-10 flex flex-col items-center mt-60">
             <motion.button
               disabled={!isComplete}
@@ -262,7 +282,11 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <MapPin size={32} strokeWidth={1} className="relative z-10 mb-1" />
+                  <MapPin
+                    size={32}
+                    strokeWidth={1}
+                    className="relative z-10 mb-1"
+                  />
                   <span className="relative z-10 text-[9px] font-bold uppercase tracking-widest opacity-40">
                     Goal
                   </span>
@@ -273,7 +297,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* 完了記念モーダル */}
+      {/* コンプリート達成時に表示される記念・交換モーダル */}
       <FinalLogModal
         show={showFinalLog}
         onClose={() => setShowFinalLog(false)}
@@ -285,17 +309,18 @@ export default function Home() {
         onExchange={exchangePrize}
       />
 
-      {/* 初回来場時の人数入力モーダル */}
-      {/* --- 来場確認モーダル（自由入力版） --- */}
+      {/* 初回来場時のみ表示される人数登録モーダル */}
       <AnimatePresence>
         {showPartyInput && (
           <div className="fixed inset-0 z-[2000] flex items-center justify-center p-6">
+            {/* 背景のディミング効果 */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-[#3e2f28]/95 backdrop-blur-md"
             />
+            {/* 入力フォームカード */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -312,7 +337,7 @@ export default function Home() {
               </p>
 
               <div className="space-y-8">
-                {/* 💡 自由入力フォーム：手記に合うアナログなデザイン */}
+                {/* 自由入力フォーム：アナログな手記の雰囲気に合わせたタイポグラフィ */}
                 <div className="relative group">
                   <input
                     type="number"
@@ -335,6 +360,7 @@ export default function Home() {
                   </p>
                 </div>
 
+                {/* 登録完了・開始ボタン */}
                 <button
                   onClick={() => {
                     const num = parseInt(inputValue);
@@ -347,7 +373,7 @@ export default function Home() {
                   記録を開始する
                 </button>
 
-                {/* 💡 管理者用エントリポイント：控えめなリンクとして配置 */}
+                {/* 管理者用ページへの控えめなリンク */}
                 <div className="pt-4 border-t border-[#3e2f28]/10">
                   <button
                     onClick={() => router.push("/admin/login")}
@@ -362,6 +388,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
+      {/* 画面最下部の余白 */}
       <footer className="h-20" />
     </div>
   );

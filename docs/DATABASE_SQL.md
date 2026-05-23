@@ -1,12 +1,12 @@
 # 🗄️ データベース構築ガイド (SQL)
 
-本ドキュメントは、アプリケーションの動作に必要な Supabase (PostgreSQL) のテーブル構造と初期データを定義する最新の SQL コードです。
+本ドキュメントは、アプリケーションの動作に必要な Supabase (PostgreSQL) のテーブル構造と初期データを定義する最新の SQL コードである。
 
 ---
 
 ## 1. テーブル定義と初期化
 
-以下の SQL を Supabase の SQL Editor で実行することで、データベースを構築できます。タイムスタンプはすべて日本時間 (JST) で統一されています。
+以下の SQL を Supabase の SQL Editor で実行することで、データベースを構築できる。タイムスタンプはすべて日本時間 (JST) で統一されている。
 
 ```sql
 -- ==========================================
@@ -31,7 +31,7 @@ create table public.profiles (
 create table public.badges (
   id uuid default gen_random_uuid() primary key,
   name text not null,
-  artist text, -- 作者名を追加
+  artist text, -- 作者名
   model_url text not null, -- AR表示用の3Dモデルパス
   image_url text not null, -- 詳細表示用の2D画像パス
   target_index int not null, -- MindARのマーカー番号 (0-5)
@@ -47,7 +47,7 @@ create table public.user_badges (
   unique(user_id, badge_id)
 );
 
--- 5. セキュリティ設定（RLSの無効化：開発時のみ）
+-- 5. セキュリティ設定（RLSの無効化：開発プロトタイプ用）
 alter table public.profiles disable row level security;
 alter table public.badges disable row level security;
 alter table public.user_badges disable row level security;
@@ -57,12 +57,13 @@ grant all on public.badges to anon, authenticated, service_role;
 grant all on public.user_badges to anon, authenticated, service_role;
 
 -- 6. 初期データの投入
+-- 注意: name は backend/lib/specimens/index.ts のキーと完全に一致させること。
 insert into public.badges (name, artist, model_url, image_url, target_index)
 values
   ('自然に寄り添う者たち', '池田 咲花', '/butterfly.glb', '/images/paintings/painting_0.jpg', 0),
   ('お母さんの初水族館', '川越あけみ', '/whale.glb', '/images/paintings/painting_1.jpg', 1),
-  ('ヤドカリ', '高山那月', '/shellcrab.glb', '/images/paintings/painting_2.jpg', 2),
-  ('海底の置く', '可部谷清楓', '/sword.glb', '/images/paintings/painting_3.jpg', 3),
+  ('ちょっと不思議な海の冒険', '高山那月', '/shellcrab.glb', '/images/paintings/painting_2.jpg', 2),
+  ('海底の奥', '可部谷清楓', '/sword.glb', '/images/paintings/painting_3.jpg', 3),
   ('よすが', '中西玲奈', '/wave.glb', '/images/paintings/painting_4.jpg', 4),
   ('遊々海月', '石垣実莉', '/jellyfish.glb', '/images/paintings/painting_5.jpg', 5);
 
@@ -96,13 +97,12 @@ create trigger tr_update_last_seen
 -- 9. インデックスの追加（検索の高速化とCPU負荷軽減）
 create index idx_badges_target_index on public.badges(target_index);
 create index idx_user_badges_user_id on public.user_badges(user_id);
-
 ```
 
 ---
 
 ## 2. SQLの役割解説
 
-- **JST統一**: `now() + interval '9 hours'` を使用することで、データベースレベルで日本時間に変換して格納しています。
-- **カスケード削除**: ユーザーが削除された際、紐付くプロフィールや獲得履歴も自動的に削除されます。
-- **複合ユニーク制約**: 同一ユーザーによる同一作品の重複獲得をデータベースレベルで防止しています。
+- **JST 統一**: `now() + interval '9 hours'` を使用することで、データベースレベルで日本時間に変換して格納している。
+- **カスケード削除**: ユーザーが削除された際、紐付くプロフィールや獲得履歴も自動的に削除される。
+- **複合ユニーク制約**: 同一ユーザーによる同一作品の重複獲得をデータベースレベルで防止し、冪等性を担保している。
