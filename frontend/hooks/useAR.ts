@@ -111,17 +111,24 @@ export const useAR = () => {
     console.log("🧹 ARの終了処理を開始します...");
     if (timerRef.current) clearInterval(timerRef.current);
 
+<<<<<<< HEAD
     // A-Frame および MindAR システムの停止。
+=======
+>>>>>>> origin/main
     const sceneEl = document.querySelector("a-scene") as HTMLElement & {
       systems?: Record<string, { stop: () => void; controller?: unknown }>;
     };
     const mindarSystem = sceneEl?.systems?.["mindar-image-system"];
     if (mindarSystem?.controller) {
+<<<<<<< HEAD
       try {
         mindarSystem.stop();
       } catch (error) {
         console.error("MindAR停止失敗:", error);
       }
+=======
+      try { mindarSystem.stop(); } catch (error) { console.error("MindAR停止失敗:", error); }
+>>>>>>> origin/main
     }
     if (sceneEl) sceneEl.remove();
 
@@ -131,7 +138,11 @@ export const useAR = () => {
         const stream = v.srcObject as MediaStream | null;
         if (stream) stream.getTracks().forEach((track) => track.stop());
       } catch {
+<<<<<<< HEAD
         // エラーは無視する。
+=======
+        // ignore errors
+>>>>>>> origin/main
       }
       v.remove();
     });
@@ -225,11 +236,15 @@ export const useAR = () => {
       if (typeof attr === "string") {
         const match = attr.match(/targetIndex:\s*(\d+)/);
         index = match ? parseInt(match[1]) : -1;
+<<<<<<< HEAD
       } else if (
         typeof attr === "object" &&
         attr !== null &&
         "targetIndex" in attr
       ) {
+=======
+      } else if (typeof attr === "object" && attr !== null && "targetIndex" in attr) {
+>>>>>>> origin/main
         index = (attr as { targetIndex: number }).targetIndex;
       }
 
@@ -325,7 +340,10 @@ export const useAR = () => {
 
         // 1. 背面のカメラ映像を描画。
         ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+<<<<<<< HEAD
         // 2. A-Frame (AR) レンダラーの結果を重ねて描画。
+=======
+>>>>>>> origin/main
         if (sceneEl.renderer && sceneEl.camera && sceneEl.object3D) {
           sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
           const aframeCanvas = sceneEl.canvas;
@@ -337,6 +355,7 @@ export const useAR = () => {
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const fileName = `specimen-${timestamp}.jpg`;
 
+<<<<<<< HEAD
         canvas.toBlob(
           async (blob) => {
             if (!blob) return;
@@ -367,6 +386,24 @@ export const useAR = () => {
           "image/jpeg",
           0.9,
         );
+=======
+        canvas.toBlob(async (blob) => {
+          if (!blob) return;
+          const file = new File([blob], fileName, { type: "image/jpeg" });
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: "標本の観察記録", text: "https://aichitech.day/" });
+            } catch {
+              // ignore
+            }
+          } else {
+            const link = document.createElement("a");
+            link.download = fileName;
+            link.href = canvas.toDataURL("image/jpeg", 0.9);
+            link.click();
+          }
+        }, "image/jpeg", 0.9);
+>>>>>>> origin/main
       } catch (error) {
         console.error("📸 保存失敗:", error);
       }

@@ -69,9 +69,13 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("openExchange") === "true") {
+    if (params.get("openExchange") === "true") {
       // 💡 カスケードレンダリング警告を回避するため、実行を次フレームへ遅延させる。
       setTimeout(() => setShowFinalLog(true), 0);
       // パラメータを消去し、リロード時にモーダルが開きっぱなしにならないようにする。
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, "", newUrl);
+    }
       const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
     }
