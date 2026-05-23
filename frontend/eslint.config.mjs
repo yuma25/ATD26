@@ -11,7 +11,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    "public/scripts/**", // A-Frame, MindAR 等の外部スクリプトを除外
+    "public/scripts/**", // A-Frame, MindAR 等の外部スクリプトを除外。
   ]),
 ]);
 

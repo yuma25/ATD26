@@ -119,8 +119,8 @@ export const useAR = () => {
     if (mindarSystem?.controller) {
       try {
         mindarSystem.stop();
-      } catch {
-        console.error("MindAR停止失敗");
+      } catch (error) {
+        console.error("MindAR停止失敗:", error);
       }
     }
     if (sceneEl) sceneEl.remove();
@@ -130,7 +130,9 @@ export const useAR = () => {
       try {
         const stream = v.srcObject as MediaStream | null;
         if (stream) stream.getTracks().forEach((track) => track.stop());
-      } catch {}
+      } catch {
+        // エラーは無視する。
+      }
       v.remove();
     });
   }, []);
@@ -228,7 +230,7 @@ export const useAR = () => {
         attr !== null &&
         "targetIndex" in attr
       ) {
-        index = (attr as Record<string, unknown>).targetIndex as number;
+        index = (attr as { targetIndex: number }).targetIndex;
       }
 
       if (index === -1) return;
@@ -306,7 +308,7 @@ export const useAR = () => {
     /** [概要] 現在のカメラ映像と AR 重畳情報を統合してスクリーンショットを撮影・保存する。 */
     captureImage: useCallback(async () => {
       const sceneEl = document.querySelector("a-scene") as HTMLElement & {
-        renderer?: { render: (s: unknown, c: unknown) => void };
+        renderer?: { render: (scene: unknown, camera: unknown) => void };
         camera?: unknown;
         object3D?: unknown;
         canvas?: HTMLCanvasElement;
@@ -324,7 +326,7 @@ export const useAR = () => {
         // 1. 背面のカメラ映像を描画。
         ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
         // 2. A-Frame (AR) レンダラーの結果を重ねて描画。
-        if (sceneEl.renderer && sceneEl.camera) {
+        if (sceneEl.renderer && sceneEl.camera && sceneEl.object3D) {
           sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
           const aframeCanvas = sceneEl.canvas;
           if (aframeCanvas) {
@@ -352,7 +354,7 @@ export const useAR = () => {
                   text: "https://aichitech.day/",
                 });
               } catch {
-                // シェアキャンセル等は無視。
+                // シェアキャンセル等は無視する。
               }
             } else {
               // 非対応ブラウザでは直接ダウンロードを実行。
@@ -365,8 +367,8 @@ export const useAR = () => {
           "image/jpeg",
           0.9,
         );
-      } catch {
-        console.error("📸 保存失敗");
+      } catch (error) {
+        console.error("📸 保存失敗:", error);
       }
     }, []),
   };
