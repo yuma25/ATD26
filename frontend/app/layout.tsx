@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import Script from "next/script";
 
 /**
  * パッケージ: app

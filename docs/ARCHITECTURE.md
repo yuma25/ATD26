@@ -47,7 +47,7 @@ graph TD
     classDef node fill:#fffdf0,stroke:#3e2f28,color:#3e2f28
     classDef service fill:#3e2f28,stroke:#3e2f28,color:#fff
     classDef database fill:#f59e0b,stroke:#3e2f28,color:#000
-    
+
     class Presentation,Logic,Data layer
     class UI,AR,Hooks,Spec,API node
     class BS,CS service
@@ -134,11 +134,11 @@ graph TD
 
 ## 7. 技術的根拠のまとめ
 
-| 技術 | 妥当性 |
-| :--- | :--- |
-| **Next.js 16** | SSR、APIルート、および外部パッケージトランスパイルの統合環境として。 |
-| **Redis (Upstash)** | サーバーレス環境でのステートレスな高速キャッシングを実現するため。 |
-| **Zod** | TypeScript の型定義と実行時のバリデーションを一致させ、安全な通信を担保。 |
-| **Supabase** | PostgreSQL と認証機能を低コストで迅速に構築するため。 |
-| **SWR** | クライアントサイドでの高度なデータ再検証とキャッシュ管理を容易にするため。 |
-| **pnpm workspaces** | フロントエンドとバックエンドの物理的分離（モノレポ）を実現するため。 |
+| 技術                | 妥当性                                                                     |
+| :------------------ | :------------------------------------------------------------------------- |
+| **Next.js 16**      | SSR、APIルート、および外部パッケージトランスパイルの統合環境として。       |
+| **Redis (Upstash)** | サーバーレス環境でのステートレスな高速キャッシングを実現するため。         |
+| **Zod**             | TypeScript の型定義と実行時のバリデーションを一致させ、安全な通信を担保。  |
+| **Supabase**        | PostgreSQL と認証機能を低コストで迅速に構築するため。                      |
+| **SWR**             | クライアントサイドでの高度なデータ再検証とキャッシュ管理を容易にするため。 |
+| **pnpm workspaces** | フロントエンドとバックエンドの物理的分離（モノレポ）を実現するため。       |

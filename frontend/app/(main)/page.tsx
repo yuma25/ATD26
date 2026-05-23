@@ -69,7 +69,10 @@ export default function Home() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("openExchange") === "true") {
-      setShowFinalLog(true);
+      // カスケードレンダリング警告回避のため、実行を次フレームへ遅延させる。
+      setTimeout(() => {
+        setShowFinalLog(true);
+      }, 0);
       // パラメータを消去して履歴をクリーンにする。
       const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
@@ -277,7 +280,11 @@ export default function Home() {
                 </>
               ) : (
                 <>
-                  <MapPin size={32} strokeWidth={1} className="relative z-10 mb-1" />
+                  <MapPin
+                    size={32}
+                    strokeWidth={1}
+                    className="relative z-10 mb-1"
+                  />
                   <span className="relative z-10 text-[9px] font-bold uppercase tracking-widest opacity-40">
                     Goal
                   </span>

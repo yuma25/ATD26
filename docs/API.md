@@ -55,16 +55,16 @@ graph TD
     Scan --> Recognized{認識成功?}
     Recognized -- No --> Scan
     Recognized -- Yes --> ShowModel[3Dモデルを表示]
-    
+
     ShowModel --> CheckAcquired{既に獲得済み?}
-    
+
     CheckAcquired -- Yes --> ShowMsg[「データ取得済み」を表示]
     CheckAcquired -- No --> Progress[解析中... ゲージ蓄積]
-    
+
     Progress --> Done{100% 完了?}
     Done -- No --> Progress
     Done -- Yes --> Save[<b>BadgeService で記録保存</b>]
-    
+
     ShowMsg --> End([<b>詳細表示・撮影</b>])
     Save --> End
 
@@ -73,7 +73,7 @@ graph TD
     classDef decision fill:#d4c5a9,stroke:#3e2f28
     classDef action fill:#fffdf0,stroke:#3e2f28
     classDef highlight fill:#f59e0b,color:#000,stroke:#3e2f28
-    
+
     class Start,End startEnd
     class Recognized,CheckAcquired,Done decision
     class Scan,ShowModel,ShowMsg,Progress action
@@ -87,27 +87,29 @@ graph TD
 アプリケーション内で使用されているすべての API を分類してまとめる。
 
 ### 2.1 内部 API (Internal REST API)
+
 Next.js の API Routes (`frontend/app/api/v1/`) で実装されているエンドポイントである。
 
-| エンドポイント | メソッド | 説明 | 認証 | キャッシュ |
-| :--- | :--- | :--- | :--- | :--- |
-| `/api/v1/badges` | `GET` | 全標本データのマスターリスト取得 | 不要 | L3 (CDN) |
-| `/api/v1/badges/acquire` | `POST` | 標本獲得の記録 | 要 (匿名) | なし |
-| `/api/v1/badges/acquired` | `GET` | ユーザーごとの獲得済みリスト取得 | 要 (匿名) | L1 (SWR) |
-| `/api/v1/profile/get` | `GET` | ユーザープロフィールの取得 | 要 (匿名) | L1 (SWR) |
-| `/api/v1/profile/update` | `POST` | 来場人数や交換フラグの更新 | 要 (匿名) | なし |
-| `/api/v1/admin/stats` | `GET` | 管理者用統計データ（集計値） | 要 (Admin) | L2 (Redis) |
+| エンドポイント            | メソッド | 説明                             | 認証       | キャッシュ |
+| :------------------------ | :------- | :------------------------------- | :--------- | :--------- |
+| `/api/v1/badges`          | `GET`    | 全標本データのマスターリスト取得 | 不要       | L3 (CDN)   |
+| `/api/v1/badges/acquire`  | `POST`   | 標本獲得の記録                   | 要 (匿名)  | なし       |
+| `/api/v1/badges/acquired` | `GET`    | ユーザーごとの獲得済みリスト取得 | 要 (匿名)  | L1 (SWR)   |
+| `/api/v1/profile/get`     | `GET`    | ユーザープロフィールの取得       | 要 (匿名)  | L1 (SWR)   |
+| `/api/v1/profile/update`  | `POST`   | 来場人数や交換フラグの更新       | 要 (匿名)  | なし       |
+| `/api/v1/admin/stats`     | `GET`    | 管理者用統計データ（集計値）     | 要 (Admin) | L2 (Redis) |
 
 ### 2.2 外部サービス・システム API
+
 直接またはライブラリを介して通信している外部連携である。
 
-| サービス | 用途 | 備考 |
-| :--- | :--- | :--- |
-| **Supabase Auth** | 匿名サインイン、セッション管理 | `supabase.auth.*` |
-| **Supabase Database** | PostgreSQL への直接クエリ（サーバーサイド） | `PostgREST` |
-| **Upstash Redis** | 統計データ、レートリミット用キャッシュ | REST 経由 |
-| **Web Share API** | 撮影画像の OS 標準共有機能 | ブラウザネイティブ API |
-| **Vercel Edge/CDN** | プログラムや 3D モデルの高速配信 | インフラレベル (L3) |
+| サービス              | 用途                                        | 備考                   |
+| :-------------------- | :------------------------------------------ | :--------------------- |
+| **Supabase Auth**     | 匿名サインイン、セッション管理              | `supabase.auth.*`      |
+| **Supabase Database** | PostgreSQL への直接クエリ（サーバーサイド） | `PostgREST`            |
+| **Upstash Redis**     | 統計データ、レートリミット用キャッシュ      | REST 経由              |
+| **Web Share API**     | 撮影画像の OS 標準共有機能                  | ブラウザネイティブ API |
+| **Vercel Edge/CDN**   | プログラムや 3D モデルの高速配信            | インフラレベル (L3)    |
 
 ---
 
@@ -126,6 +128,7 @@ Next.js の API Routes (`frontend/app/api/v1/`) で実装されているエン�
 全ての内部 API は一貫した JSON 構造を返却する。
 
 ### ✅ 成功時 (Success: 200 OK)
+
 ```json
 {
   "success": true,
@@ -134,6 +137,7 @@ Next.js の API Routes (`frontend/app/api/v1/`) で実装されているエン�
 ```
 
 ### ❌ 失敗時 (Failure: 4xx / 5xx)
+
 ```json
 {
   "success": false,

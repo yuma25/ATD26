@@ -152,7 +152,7 @@ export default function AdminDashboard() {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        
+
         // 認証トークンをヘッダーに含めてリクエストを送信する。
         const res = await fetch(`/api/v1/admin/stats?period=${period}`, {
           headers: { Authorization: `Bearer ${session?.access_token}` },
@@ -186,11 +186,11 @@ export default function AdminDashboard() {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    
+
     // メールログインかつ非匿名ユーザーのみを管理者とみなす。
     const isEmailUser = session?.user?.app_metadata?.provider === "email";
     const isAnonymous = session?.user?.is_anonymous;
-    
+
     if (!session || isAnonymous || !isEmailUser) {
       router.replace("/admin/login");
       return;

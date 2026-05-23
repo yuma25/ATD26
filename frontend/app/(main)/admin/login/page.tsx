@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   /** 初回のログイン状態チェック中フラグ */
   const [isChecking, setIsChecking] = useState(true);
-  
+
   const router = useRouter();
 
   /**

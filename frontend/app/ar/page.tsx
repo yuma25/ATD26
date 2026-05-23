@@ -99,7 +99,11 @@ export default function ARPage() {
           const THREE = AFRAME.THREE;
           // 3D モデルのロード進捗を管理するマネージャーの設定。
           const manager = new THREE.LoadingManager();
-          manager.onProgress = (url: string, itemsLoaded: number, itemsTotal: number) => {
+          manager.onProgress = (
+            url: string,
+            itemsLoaded: number,
+            itemsTotal: number,
+          ) => {
             const p = Math.floor((itemsLoaded / itemsTotal) * 100);
             setModelProgress(p);
           };
@@ -107,13 +111,17 @@ export default function ARPage() {
 
           // Meshopt デコーダーの初期化。
           let MeshoptDecoder = win.MeshoptDecoder;
-          if (typeof MeshoptDecoder === "function") MeshoptDecoder = await MeshoptDecoder();
+          if (typeof MeshoptDecoder === "function")
+            MeshoptDecoder = await MeshoptDecoder();
           if (MeshoptDecoder?.ready) await MeshoptDecoder.ready;
 
           // GLTF ローダーにデコーダーを登録するためのプロトタイプ拡張。
           if (THREE.GLTFLoader) {
             const originalLoad = THREE.GLTFLoader.prototype.load;
-            THREE.GLTFLoader.prototype.load = function (this: any, ...args: any[]) {
+            THREE.GLTFLoader.prototype.load = function (
+              this: any,
+              ...args: any[]
+            ) {
               this.manager = win._loadingManager || THREE.DefaultLoadingManager;
               if (MeshoptDecoder) this.setMeshoptDecoder(MeshoptDecoder);
               if (THREE.DRACOLoader) {
@@ -143,29 +151,36 @@ export default function ARPage() {
    * 標本データがロードされ、スクリプトの準備が整ったタイミングで一度だけ実行される。
    */
   useEffect(() => {
-    if (!isSceneReady || !isClient || !isLoaded || allBadges.length === 0) return;
+    if (!isSceneReady || !isClient || !isLoaded || allBadges.length === 0)
+      return;
     if (!arContainerRef.current) return;
 
     // 現在の標本データの状態をハッシュ化して、不要な再描画（エンジン再起動）を防止する。
-    const currentDataHash = JSON.stringify(allBadges.map((b: Badge) => `${b.target_index}:${b.model_url}`));
+    const currentDataHash = JSON.stringify(
+      allBadges.map((b: Badge) => `${b.target_index}:${b.model_url}`),
+    );
     const existingScene = arContainerRef.current.querySelector("a-scene");
-    if (existingScene && lastInjectedDataHashRef.current === currentDataHash) return;
+    if (existingScene && lastInjectedDataHashRef.current === currentDataHash)
+      return;
 
     // 既存のシーンがある場合は停止し、コンテナをクリアする。
     if (existingScene) {
       try {
-        const mindarSystem = (existingScene as any).systems?.["mindar-image-system"];
+        const mindarSystem = (existingScene as any).systems?.[
+          "mindar-image-system"
+        ];
         if (mindarSystem) mindarSystem.stop();
       } catch (e) {}
       arContainerRef.current.innerHTML = "";
     }
 
     lastInjectedDataHashRef.current = currentDataHash;
-    
+
     // 全標本に対応する AR ターゲット実体を生成。
-    const entitiesHtml = allBadges.map((badge: Badge) => {
-      const settings = getSpecimenSettings(badge.name);
-      return `
+    const entitiesHtml = allBadges
+      .map((badge: Badge) => {
+        const settings = getSpecimenSettings(badge.name);
+        return `
         <a-entity mindar-image-target="targetIndex: ${badge.target_index}">
           <a-entity id="model-container-${badge.target_index}" visible="false">
              <a-entity animation="${settings.outerAnimation || ""}">
@@ -182,7 +197,8 @@ export default function ARPage() {
           </a-entity>
         </a-entity>
       `;
-    }).join("\n");
+      })
+      .join("\n");
 
     // AR シーン全体の HTML 構造を定義。
     const sceneHtml = `
@@ -209,7 +225,7 @@ export default function ARPage() {
     const boot = () => {
       if (sceneEl.systems?.["mindar-image-system"]) {
         sceneEl.systems["mindar-image-system"].start();
-        
+
         /** カメラ映像のスタイルと挙動を強制的に固定する補正関数。 */
         const fixVideo = (video: HTMLVideoElement) => {
           video.setAttribute("playsinline", "");
@@ -221,7 +237,7 @@ export default function ARPage() {
           video.style.height = "100vh";
           video.style.objectFit = "cover";
           void video.play().catch(() => {});
-          
+
           // レイアウト崩れ防止のため、周期的にリサイズイベントをシミュレートする。
           setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
           setTimeout(() => window.dispatchEvent(new Event("resize")), 500);
@@ -261,7 +277,10 @@ export default function ARPage() {
   return (
     <div className="fixed inset-0 bg-black overflow-hidden select-none touch-none">
       {/* AR レンダリングコンテナ */}
-      <div ref={arContainerRef} className="absolute inset-0 w-full h-full z-10" />
+      <div
+        ref={arContainerRef}
+        className="absolute inset-0 w-full h-full z-10"
+      />
 
       {/* 2D オーバーレイ UI レイヤー */}
       <div className="absolute inset-0 z-20 pointer-events-none flex flex-col items-center">
@@ -304,12 +323,18 @@ export default function ARPage() {
               <div className="w-full max-w-[280px] space-y-4">
                 <div className="flex justify-between items-end">
                   <span className="text-white text-[10px] font-black italic tracking-tighter">
-                    {activeBadge?.name} ({getCurrentDisplayCount()} / {allBadges.length})
+                    {activeBadge?.name} ({getCurrentDisplayCount()} /{" "}
+                    {allBadges.length})
                   </span>
-                  <span className="text-white font-mono text-[10px]">{progress}%</span>
+                  <span className="text-white font-mono text-[10px]">
+                    {progress}%
+                  </span>
                 </div>
                 <div className="h-[6px] w-full bg-white/20 rounded-full overflow-hidden">
-                  <div className="h-full bg-white transition-all duration-100 ease-out" style={{ width: `${progress}%` }}></div>
+                  <div
+                    className="h-full bg-white transition-all duration-100 ease-out"
+                    style={{ width: `${progress}%` }}
+                  ></div>
                 </div>
               </div>
             )}
@@ -318,7 +343,9 @@ export default function ARPage() {
             {isFound && acquired && (
               <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-3">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <p className="text-white text-[10px] font-bold uppercase tracking-widest">標本データ取得済み</p>
+                <p className="text-white text-[10px] font-bold uppercase tracking-widest">
+                  標本データ取得済み
+                </p>
               </div>
             )}
           </div>
@@ -332,7 +359,10 @@ export default function ARPage() {
               artistName={activeBadge.artist}
               allBadges={allBadges}
               acquiredBadgeIds={acquiredBadgeIds}
-              isLast={allBadges.length > 0 && getCurrentDisplayCount() === allBadges.length}
+              isLast={
+                allBadges.length > 0 &&
+                getCurrentDisplayCount() === allBadges.length
+              }
               isExchanged={isExchanged}
               onClose={() => setShowSuccess(false)}
             />
@@ -343,7 +373,10 @@ export default function ARPage() {
       {/* スクリーンショット撮影ボタン */}
       {status === "started" && !showSuccess && (
         <div className="absolute bottom-10 left-0 right-0 z-30 flex justify-center px-8">
-          <button onClick={captureImage} className="w-16 h-16 bg-white/10 backdrop-blur-xl border-4 border-white rounded-full flex items-center justify-center active:scale-90 transition-transform pointer-events-auto shadow-2xl group">
+          <button
+            onClick={captureImage}
+            className="w-16 h-16 bg-white/10 backdrop-blur-xl border-4 border-white rounded-full flex items-center justify-center active:scale-90 transition-transform pointer-events-auto shadow-2xl group"
+          >
             <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center group-hover:bg-white/90">
               <Camera size={28} className="text-black" />
             </div>
@@ -356,7 +389,15 @@ export default function ARPage() {
 
       {/* ビデオ要素に対するグローバル補正スタイル */}
       <style jsx global>{`
-        video { object-fit: cover !important; width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; z-index: -10 !important; }
+        video {
+          object-fit: cover !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          z-index: -10 !important;
+        }
       `}</style>
     </div>
   );

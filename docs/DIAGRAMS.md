@@ -36,10 +36,10 @@ classDiagram
         +name: string
         +target_index: number
     }
-    
+
     BadgeService ..> Badge : データを管理
     BadgeService --> CacheService : キャッシュ処理を委譲
-    
+
     style BadgeService fill:#3e2f28,color:#fff,stroke:#3e2f28,stroke-width:2px
     style CacheService fill:#f59e0b,color:#000,stroke:#3e2f28,stroke-width:2px
     style Badge fill:#d4c5a9,color:#3e2f28,stroke:#3e2f28
@@ -61,7 +61,7 @@ sequenceDiagram
 
     Admin->>API: 統計データを要求 (GET)
     API->>Redis: キャッシュ確認
-    
+
     alt キャッシュあり (Hit)
         Redis-->>API: データを返却
     else キャッシュなし (Miss)
@@ -69,7 +69,7 @@ sequenceDiagram
         DB-->>API: 集計結果
         API->>Redis: 結果を保存 (300s)
     end
-    
+
     API-->>Admin: 統計データを返却
 ```
 
@@ -83,18 +83,18 @@ sequenceDiagram
 graph TD
     Start([<b>アプリ起動</b>]) --> Auth[匿名サインイン]
     Auth --> Home{ホーム画面}
-    
+
     Home -- 探索 --> AR[ARスキャン開始]
     AR --> Scan{作品を発見?}
     Scan -- Yes --> Analysis[解析ゲージを貯める]
     Analysis --> Acquired[<b>標本獲得 / 記録</b>]
     Acquired --> AR
     Scan -- No --> AR
-    
+
     Home -- 閲覧 --> Journal[図録を閲覧]
     Journal --> Detail[詳細鑑賞]
     Detail --> Journal
-    
+
     Journal --> Exchange[景品交換]
     Exchange --> Finish([<b>体験終了</b>])
 
@@ -102,7 +102,7 @@ graph TD
     classDef startEnd fill:#3e2f28,color:#fff,stroke:#3e2f28,stroke-width:2px
     classDef action fill:#fffdf0,color:#3e2f28,stroke:#3e2f28,stroke-dasharray: 5 5
     classDef important fill:#f59e0b,color:#000,stroke:#3e2f28,stroke-width:2px
-    
+
     class Start,Finish startEnd
     class Auth,AR,Journal,Detail,Analysis action
     class Acquired,Exchange important
@@ -118,17 +118,17 @@ graph TD
 stateDiagram-v2
     [*] --> 読み込み中: ページ遷移
     読み込み中 --> スキャン中: カメラ準備完了
-    
+
     state スキャン中 {
         [*] --> 探索中
         探索中 --> 解析中: マーカー検出 (Found)
         解析中 --> 探索中: マーカー紛失 (Lost)
         解析中 --> 記録中: ゲージ100%
     }
-    
+
     記録中 --> 獲得済み: DB保存完了
     獲得済み --> 探索中: ダイアログを閉じる
-    
+
     獲得済み --> [*]: ホームへ戻る
 ```
 
@@ -143,22 +143,22 @@ graph TB
     subgraph Client ["📱 ユーザー端末 (Browser)"]
         UI["Webアプリ (Next.js)"]
     end
-    
+
     subgraph Vercel ["☁️ Vercel Edge"]
         API["API Routes / Edge Functions"]
         CDN["Vercel CDN (Assets)"]
     end
-    
+
     subgraph Backend ["⚙️ Backend Services"]
         Supa[("🗄️ Supabase / DB")]
         Redis[("⚡ Upstash / Redis")]
     end
-    
+
     UI -- HTTPS/JWT --> API
     UI -- HTTPS --> CDN
     API -- SQL --> Supa
     API -- REST --> Redis
-    
+
     %% スタイル定義
     style Client fill:#e8e2d2,stroke:#3e2f28,stroke-width:2px
     style Vercel fill:#d4c5a9,stroke:#3e2f28,stroke-width:2px

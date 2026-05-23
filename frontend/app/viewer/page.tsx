@@ -31,7 +31,7 @@ function ViewerContent() {
     <div className="fixed inset-0 bg-[#1a1512] flex flex-col items-center overflow-hidden">
       {/* 1. 背景装飾：ギャラリーのスポットライトを連想させる放射状グラデーション。 */}
       <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,#3e2f28,transparent)]" />
-      
+
       {/* 2. ヘッダー UI：作品名と作者名の表示。 */}
       <div className="w-full pt-12 pb-4 z-50 flex justify-center">
         <div className="text-center space-y-1 w-full max-w-[90vw] overflow-hidden">

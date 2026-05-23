@@ -51,12 +51,15 @@ export const DiscoveryComplete = ({
   isExchanged = false,
 }: DiscoveryCompleteProps) => {
   const totalCount = allBadges.length;
-  
+
   // 獲得数の算出ロジック。
   // すでに獲得済みリストに含まれている場合は現在の数、新規獲得時（リスト未反映）は現在の数に +1 する。
-  const currentBadgeId = allBadges.find(b => b.name === badgeName)?.id;
-  const isAlreadyInList = currentBadgeId && acquiredBadgeIds.includes(currentBadgeId);
-  const currentCount = isLast ? totalCount : (acquiredBadgeIds.length + (isAlreadyInList ? 0 : 1));
+  const currentBadgeId = allBadges.find((b) => b.name === badgeName)?.id;
+  const isAlreadyInList =
+    currentBadgeId && acquiredBadgeIds.includes(currentBadgeId);
+  const currentCount = isLast
+    ? totalCount
+    : acquiredBadgeIds.length + (isAlreadyInList ? 0 : 1);
 
   /**
    * [概要] ホーム画面に戻り、自動的に景品引き換えモーダルを開く。
@@ -67,8 +70,8 @@ export const DiscoveryComplete = ({
    * 2. リダイレクト: クエリパラメータ `openExchange=true` を付与してトップページへ遷移する。
    */
   const handleDirectToExchange = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
-    
+    e.stopPropagation();
+
     // 画面遷移の演出として 100ms 待機してから実行。
     setTimeout(() => {
       window.location.href = "/?openExchange=true";
@@ -83,7 +86,10 @@ export const DiscoveryComplete = ({
         animate={{ y: 0, opacity: 1 }}
         className="mt-12 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 flex items-center gap-3 shadow-xl"
       >
-        <Award size={16} className={isLast ? "text-amber-400" : "text-white/60"} />
+        <Award
+          size={16}
+          className={isLast ? "text-amber-400" : "text-white/60"}
+        />
         <span className="text-white font-mono text-sm font-black tracking-widest">
           {currentCount} / {totalCount}
         </span>
@@ -109,8 +115,13 @@ export const DiscoveryComplete = ({
         >
           {isLast ? (
             <div className="text-center relative">
-              <Sparkles className="absolute -top-12 -right-8 text-amber-300 animate-pulse" size={40} />
-              <div className="text-4xl font-black mb-1 tracking-tighter">COMPLETE</div>
+              <Sparkles
+                className="absolute -top-12 -right-8 text-amber-300 animate-pulse"
+                size={40}
+              />
+              <div className="text-4xl font-black mb-1 tracking-tighter">
+                COMPLETE
+              </div>
               <Check size={50} strokeWidth={4} className="mx-auto" />
             </div>
           ) : (
@@ -146,7 +157,9 @@ export const DiscoveryComplete = ({
             </p>
           )}
           <p className="text-white/60 font-mono text-[10px] uppercase tracking-[0.5em] pt-2">
-            {isLast ? "全ての標本のアーカイブに成功しました" : "新たな標本を発見しました"}
+            {isLast
+              ? "全ての標本のアーカイブに成功しました"
+              : "新たな標本を発見しました"}
           </p>
         </div>
 
@@ -168,62 +181,88 @@ export const DiscoveryComplete = ({
         className="w-full max-w-sm mb-4 pointer-events-auto"
         onClick={isLast && !isExchanged ? handleDirectToExchange : onClose}
       >
-        <div className={`relative overflow-hidden border-2 rounded-2xl p-4 flex items-center justify-between shadow-2xl backdrop-blur-xl group active:scale-95 transition-transform ${
-          isExchanged 
-            ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400" 
-            : isLast 
-              ? "bg-amber-950/60 border-amber-400 text-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.2)]" 
-              : "bg-black/60 border-white/10 text-white/80"
-        }`}>
+        <div
+          className={`relative overflow-hidden border-2 rounded-2xl p-4 flex items-center justify-between shadow-2xl backdrop-blur-xl group active:scale-95 transition-transform ${
+            isExchanged
+              ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
+              : isLast
+                ? "bg-amber-950/60 border-amber-400 text-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.2)]"
+                : "bg-black/60 border-white/10 text-white/80"
+          }`}
+        >
           {/* チケットの切り取り線風の装飾ドット */}
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-[radial-gradient(circle,currentColor_1px,transparent_1.5px)] bg-[length:1px_6px]" />
-          
+
           <div className="flex items-center gap-4 flex-1 overflow-hidden">
-            <div className={`p-3 rounded-xl shrink-0 ${isExchanged ? 'bg-emerald-500/20' : isLast ? 'bg-amber-400 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-white/10'}`}>
+            <div
+              className={`p-3 rounded-xl shrink-0 ${isExchanged ? "bg-emerald-500/20" : isLast ? "bg-amber-400 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)]" : "bg-white/10"}`}
+            >
               <Ticket size={24} strokeWidth={isLast ? 2.5 : 1.5} />
             </div>
-            
+
             <div className="flex flex-col min-w-0">
-              <span className={`text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 whitespace-nowrap ${isLast ? 'text-amber-400/60' : 'text-white/40'}`}>
+              <span
+                className={`text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 whitespace-nowrap ${isLast ? "text-amber-400/60" : "text-white/40"}`}
+              >
                 Archive Reward Status
               </span>
               <h3 className="text-[12px] font-black tracking-tighter whitespace-nowrap overflow-hidden">
-                {isExchanged ? '景品交換済み：探究完了' : isLast ? '引き換えチケットを使用する' : '全作品収集でチケット解禁'}
+                {isExchanged
+                  ? "景品交換済み：探究完了"
+                  : isLast
+                    ? "引き換えチケットを使用する"
+                    : "全作品収集でチケット解禁"}
               </h3>
               {isLast && !isExchanged && (
                 <div className="flex items-center gap-1 mt-0.5">
-                   <span className="text-[8px] font-bold opacity-80">タップしてホーム画面へ</span>
-                   <ArrowRight size={8} className="animate-[bounce-x_1s_infinite]" />
+                  <span className="text-[8px] font-bold opacity-80">
+                    タップしてホーム画面へ
+                  </span>
+                  <ArrowRight
+                    size={8}
+                    className="animate-[bounce-x_1s_infinite]"
+                  />
                 </div>
               )}
             </div>
           </div>
 
           {/* チケットの右側：現在のカウント表示 */}
-          <div className={`ml-4 pl-4 border-l border-white/10 flex flex-col items-center justify-center min-w-[50px] shrink-0 ${isLast && !isExchanged ? 'animate-pulse' : ''}`}>
-             <span className="text-[8px] font-bold opacity-50 uppercase tracking-tighter mb-1">{isLast ? 'Valid' : 'Total'}</span>
-             <span className="text-lg font-black font-mono leading-none">{isLast ? 'OK' : currentCount}</span>
+          <div
+            className={`ml-4 pl-4 border-l border-white/10 flex flex-col items-center justify-center min-w-[50px] shrink-0 ${isLast && !isExchanged ? "animate-pulse" : ""}`}
+          >
+            <span className="text-[8px] font-bold opacity-50 uppercase tracking-tighter mb-1">
+              {isLast ? "Valid" : "Total"}
+            </span>
+            <span className="text-lg font-black font-mono leading-none">
+              {isLast ? "OK" : currentCount}
+            </span>
           </div>
         </div>
-        
+
         {/* コンプリート時のメッセージ */}
         {isLast && (
-           <div className="mt-3 text-center space-y-1">
-             <p className="text-white/40 text-[7px] uppercase tracking-[0.3em] font-mono">
-               Your scientific journey reaches its magnificent conclusion.
-             </p>
-             <p className="text-amber-400/60 text-[8px] font-bold tracking-widest">
-               — ホーム画面へ戻りスタッフへ提示してください —
-             </p>
-           </div>
+          <div className="mt-3 text-center space-y-1">
+            <p className="text-white/40 text-[7px] uppercase tracking-[0.3em] font-mono">
+              Your scientific journey reaches its magnificent conclusion.
+            </p>
+            <p className="text-amber-400/60 text-[8px] font-bold tracking-widest">
+              — ホーム画面へ戻りスタッフへ提示してください —
+            </p>
+          </div>
         )}
       </motion.div>
 
       {/* コンポーネント固有のアニメーション定義 */}
       <style jsx global>{`
         @keyframes bounce-x {
-          0%, 100% { transform: translateX(0); }
-          50% { transform: translateX(3px); }
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          50% {
+            transform: translateX(3px);
+          }
         }
       `}</style>
     </div>

@@ -48,7 +48,9 @@ export const useAR = () => {
   // ユーザーのセッション情報を取得。
   const { data: sessionData } = useSWR("user-session", async () => {
     if (!supabase) return null;
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     return session;
   });
   const userId = sessionData?.user?.id || "";
@@ -110,10 +112,16 @@ export const useAR = () => {
     if (timerRef.current) clearInterval(timerRef.current);
 
     // A-Frame および MindAR システムの停止。
-    const sceneEl = document.querySelector("a-scene") as any;
+    const sceneEl = document.querySelector("a-scene") as HTMLElement & {
+      systems?: Record<string, { stop: () => void; controller?: unknown }>;
+    };
     const mindarSystem = sceneEl?.systems?.["mindar-image-system"];
     if (mindarSystem?.controller) {
-      try { mindarSystem.stop(); } catch (e) { console.error("MindAR停止失敗:", e); }
+      try {
+        mindarSystem.stop();
+      } catch {
+        console.error("MindAR停止失敗");
+      }
     }
     if (sceneEl) sceneEl.remove();
 
@@ -122,7 +130,7 @@ export const useAR = () => {
       try {
         const stream = v.srcObject as MediaStream | null;
         if (stream) stream.getTracks().forEach((track) => track.stop());
-      } catch (e) {}
+      } catch {}
       v.remove();
     });
   }, []);
@@ -147,9 +155,14 @@ export const useAR = () => {
 
       // サーバーへの永続化。
       if (!supabase) return;
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
-        const { data: newAcquired } = await BadgeService.acquireBadge(user.id, badgeId);
+        const { data: newAcquired } = await BadgeService.acquireBadge(
+          user.id,
+          badgeId,
+        );
         if (newAcquired) void mutateAcquired();
       }
     },
@@ -210,8 +223,12 @@ export const useAR = () => {
       if (typeof attr === "string") {
         const match = attr.match(/targetIndex:\s*(\d+)/);
         index = match ? parseInt(match[1]) : -1;
-      } else if (typeof attr === "object" && attr !== null && "targetIndex" in attr) {
-        index = (attr as any).targetIndex;
+      } else if (
+        typeof attr === "object" &&
+        attr !== null &&
+        "targetIndex" in attr
+      ) {
+        index = (attr as Record<string, unknown>).targetIndex as number;
       }
 
       if (index === -1) return;
@@ -219,14 +236,18 @@ export const useAR = () => {
       // 標本発見イベント。
       targetEl.addEventListener("targetFound", () => {
         console.log(`🎯 発見: 番号 ${index}`);
-        const badge = allBadgesRef.current.find((b) => b.target_index === index);
+        const badge = allBadgesRef.current.find(
+          (b) => b.target_index === index,
+        );
         if (!badge) return;
 
         setActiveBadge(badge);
         setIsFound(true);
 
         // 3Dモデルの可視化。
-        document.querySelector(`#model-container-${index}`)?.setAttribute("visible", "true");
+        document
+          .querySelector(`#model-container-${index}`)
+          ?.setAttribute("visible", "true");
 
         // 獲得済み状況の判定とゲージ開始。
         const alreadyHad = acquiredBadgeIdsRef.current.includes(badge.id);
@@ -244,7 +265,9 @@ export const useAR = () => {
       targetEl.addEventListener("targetLost", () => {
         console.log(`💨 見失い: 番号 ${index}`);
         setIsFound(false);
-        document.querySelector(`#model-container-${index}`)?.setAttribute("visible", "false");
+        document
+          .querySelector(`#model-container-${index}`)
+          ?.setAttribute("visible", "false");
         resetProgress();
       });
     });
@@ -275,12 +298,19 @@ export const useAR = () => {
     navigateHome: useCallback(() => {
       setIsExiting(true);
       cleanupAR();
-      setTimeout(() => { window.location.href = "/"; }, 300);
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 300);
     }, [cleanupAR]),
     setShowSuccess,
     /** [概要] 現在のカメラ映像と AR 重畳情報を統合してスクリーンショットを撮影・保存する。 */
     captureImage: useCallback(async () => {
-      const sceneEl = document.querySelector("a-scene") as any;
+      const sceneEl = document.querySelector("a-scene") as HTMLElement & {
+        renderer?: { render: (s: unknown, c: unknown) => void };
+        camera?: unknown;
+        object3D?: unknown;
+        canvas?: HTMLCanvasElement;
+      };
       const videoEl = document.querySelector("video");
       if (!sceneEl || !videoEl) return;
 
@@ -305,24 +335,38 @@ export const useAR = () => {
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const fileName = `specimen-${timestamp}.jpg`;
 
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
-          const file = new File([blob], fileName, { type: "image/jpeg" });
-          // Web Share API が利用可能な場合はシェアダイアログを表示。
-          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({ files: [file], title: "標本の観察記録", text: "https://aichitech.day/" });
-            } catch (e) {}
-          } else {
-            // 非対応ブラウザでは直接ダウンロードを実行。
-            const link = document.createElement("a");
-            link.download = fileName;
-            link.href = canvas.toDataURL("image/jpeg", 0.9);
-            link.click();
-          }
-        }, "image/jpeg", 0.9);
-      } catch (e) {
-        console.error("📸 保存失敗:", e);
+        canvas.toBlob(
+          async (blob) => {
+            if (!blob) return;
+            const file = new File([blob], fileName, { type: "image/jpeg" });
+            // Web Share API が利用可能な場合はシェアダイアログを表示。
+            if (
+              navigator.share &&
+              navigator.canShare &&
+              navigator.canShare({ files: [file] })
+            ) {
+              try {
+                await navigator.share({
+                  files: [file],
+                  title: "標本の観察記録",
+                  text: "https://aichitech.day/",
+                });
+              } catch {
+                // シェアキャンセル等は無視。
+              }
+            } else {
+              // 非対応ブラウザでは直接ダウンロードを実行。
+              const link = document.createElement("a");
+              link.download = fileName;
+              link.href = canvas.toDataURL("image/jpeg", 0.9);
+              link.click();
+            }
+          },
+          "image/jpeg",
+          0.9,
+        );
+      } catch {
+        console.error("📸 保存失敗");
       }
     }, []),
   };

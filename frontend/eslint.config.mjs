@@ -5,13 +5,13 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  // Override default ignores of eslint-config-next.
+  // 外部ライブラリやビルド成果物を解析対象から除外する。
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "public/scripts/**", // A-Frame, MindAR 等の外部スクリプトを除外
   ]),
 ]);
 
