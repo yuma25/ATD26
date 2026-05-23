@@ -337,32 +337,36 @@ export const useAR = () => {
         const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
         const fileName = `specimen-${timestamp}.jpg`;
 
-        canvas.toBlob(async (blob) => {
-          if (!blob) return;
-          const file = new File([blob], fileName, { type: "image/jpeg" });
-          // Web Share API が利用可能な場合はシェアダイアログを表示。
-          if (
-            navigator.share &&
-            navigator.canShare &&
-            navigator.canShare({ files: [file] })
-          ) {
-            try {
-              await navigator.share({
-                files: [file],
-                title: "標本の観察記録",
-                text: "https://aichitech.day/",
-              });
-            } catch {
-              // ignore
+        canvas.toBlob(
+          async (blob) => {
+            if (!blob) return;
+            const file = new File([blob], fileName, { type: "image/jpeg" });
+            // Web Share API が利用可能な場合はシェアダイアログを表示。
+            if (
+              navigator.share &&
+              navigator.canShare &&
+              navigator.canShare({ files: [file] })
+            ) {
+              try {
+                await navigator.share({
+                  files: [file],
+                  title: "標本の観察記録",
+                  text: "https://aichitech.day/",
+                });
+              } catch {
+                // ignore
+              }
+            } else {
+              // 非対応ブラウザでは直接ダウンロードを実行。
+              const link = document.createElement("a");
+              link.download = fileName;
+              link.href = canvas.toDataURL("image/jpeg", 0.9);
+              link.click();
             }
-          } else {
-            // 非対応ブラウザでは直接ダウンロードを実行。
-            const link = document.createElement("a");
-            link.download = fileName;
-            link.href = canvas.toDataURL("image/jpeg", 0.9);
-            link.click();
-          }
-        }, "image/jpeg", 0.9);
+          },
+          "image/jpeg",
+          0.9,
+        );
       } catch (error) {
         console.error("📸 保存失敗:", error);
       }

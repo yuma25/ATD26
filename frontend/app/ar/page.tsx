@@ -308,18 +308,10 @@ export default function ARPage() {
                   絵画にカメラを向けてください
                 </p>
               )}
-              {/* 3D モデルの個別読み込み進捗 */}
-              {isFound && modelProgress < 100 && (
-                <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 mt-2">
-                  <p className="text-white/80 text-[9px] uppercase tracking-[0.2em] animate-pulse">
-                    Restoring Specimen... {modelProgress}%
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* 解析中（未獲得時）のプログレスバー */}
-            {isFound && !acquired && modelProgress === 100 && (
+            {/* 解析中（未獲得時）のプログレスバー：モデルのロード状況に関わらず即座に表示を開始する */}
+            {isFound && !acquired && (
               <div className="w-full max-w-[280px] space-y-4">
                 <div className="flex justify-between items-end">
                   <span className="text-white text-[10px] font-black italic tracking-tighter">
@@ -336,6 +328,12 @@ export default function ARPage() {
                     style={{ width: `${progress}%` }}
                   ></div>
                 </div>
+                {/* 3D モデルがまだロード中の場合のみ、補助的なインジケーターを表示する */}
+                {modelProgress < 100 && (
+                  <p className="text-white/40 text-[7px] uppercase tracking-[0.1em] text-center animate-pulse">
+                    Restoring 3D Model... {modelProgress}%
+                  </p>
+                )}
               </div>
             )}
 
