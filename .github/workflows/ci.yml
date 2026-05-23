@@ -2,13 +2,17 @@ name: CI/CD (ATD26)
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, fix/camera-play-mark]
   pull_request:
     branches: [main, master]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+# 💡 明示的な権限付与により、チェックアウト時の認証エラー（fatal: could not read Username）を防止する。
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -17,7 +21,11 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # 💡 セキュリティと整合性のため、一時的な認証情報を使用する。
+          persist-credentials: false
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -41,4 +49,3 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-key"
-          # その他ビルドに必要な環境変数があればここに追加
