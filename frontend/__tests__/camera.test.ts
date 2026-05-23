@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// テスト用のグローバルなモック設定
+/**
+ * パッケージ: __tests__
+ * カメラ権限リクエストおよびアクティベーションロジックの検証を行う。
+ */
+
+/**
+ * [概要] テスト環境用のグローバルなモック設定である。
+ * navigator.mediaDevices.getUserMedia をモック化し、テスト中に実際のカメラデバイスへのアクセスが発生しないようにする。
+ */
 const mockMediaDevices = {
   getUserMedia: vi.fn(),
 };
@@ -10,25 +18,35 @@ Object.defineProperty(global.navigator, "mediaDevices", {
   writable: true,
 });
 
-// requestCameraPermission 関数をテストするため、フックからロジックをシミュレート
+/**
+ * [概要] カメラ権限のリクエスト処理をシミュレートする補助関数である。
+ * 内部でモック化された getUserMedia を呼び出し、結果に応じたステータスを返却する。
+ *
+ * @return result [Object] 成功フラグ (success) および権限ステータス (status) を含む。
+ */
 async function simulateRequestPermission() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    // 成功時：ストリームのトラックを止める処理をシミュレート
+    // 成功時：取得したストリームの全トラックを停止させる（リソース解放のシミュレート）。
     stream.getTracks().forEach((track: { stop: () => void }) => track.stop());
     return { success: true, status: "granted" };
   } catch {
+    // 拒否またはエラー時。
     return { success: false, status: "denied" };
   }
 }
 
+/**
+ * [概要] カメラ起動ロジックのテストスイートである。
+ */
 describe("Camera Activation Logic", () => {
   beforeEach(() => {
+    // 各テスト実行前にモックの呼び出し履歴をクリアする。
     vi.clearAllMocks();
   });
 
   it("カメラの許可が得られた場合、成功を返すこと", async () => {
-    // getUserMedia が成功するケースをモック
+    // [概要] getUserMedia が成功（ストリームを返す）するケースの検証。
     mockMediaDevices.getUserMedia.mockResolvedValue({
       getTracks: () => [{ stop: vi.fn() }],
     });
@@ -41,7 +59,7 @@ describe("Camera Activation Logic", () => {
   });
 
   it("ユーザーがカメラを拒否した場合、失敗を返すこと", async () => {
-    // getUserMedia が失敗（拒否）するケースをモック
+    // [概要] getUserMedia がエラー（Permission denied）を投げるケースの検証。
     mockMediaDevices.getUserMedia.mockRejectedValue(
       new Error("Permission denied"),
     );

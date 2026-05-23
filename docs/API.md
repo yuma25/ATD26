@@ -1,8 +1,8 @@
-# APIおよびサービス仕様書
+# API およびサービス仕様書
 
 ### システムの相互運用性とセキュリティ設計
 
-本アプリケーションは、API レイヤーを介して高度なセキュリティ制御、データのバリデーション、およびトラフィック管理を実装しています。
+本アプリケーションは、API レイヤーを介して高度なセキュリティ制御、データのバリデーション、およびトラフィック管理を実装している。
 
 ---
 
@@ -10,7 +10,7 @@
 
 ### ユースケース (Use Case)
 
-ユーザー（来場者）と管理者がシステムを通じてどのようなアクションを行うかを定義します。
+ユーザー（来場者）と管理者がシステムを通じてどのようなアクションを行うかを定義する。
 
 ```mermaid
 graph TD
@@ -33,15 +33,25 @@ graph TD
     Visitor --> UC4
     Visitor --> UC5
     Admin --> UC6
+
+    %% スタイル定義
+    style Visitor fill:#3e2f28,color:#fff
+    style Admin fill:#3e2f28,color:#fff
+    style UC1 fill:#fffdf0,stroke:#3e2f28
+    style UC2 fill:#fffdf0,stroke:#3e2f28
+    style UC3 fill:#fffdf0,stroke:#3e2f28
+    style UC4 fill:#fffdf0,stroke:#3e2f28
+    style UC5 fill:#f59e0b,stroke:#3e2f28,color:#000
+    style UC6 fill:#f59e0b,stroke:#3e2f28,color:#000
 ```
 
 ### アクティビティフロー (Activity Flow)
 
-主要な機能である「作品の発見から獲得まで」の論理フローです。
+主要な機能である「作品の発見から獲得まで」の論理フローである。
 
 ```mermaid
 graph TD
-    Start([開始]) --> Scan[絵画をスキャン]
+    Start([<b>開始</b>]) --> Scan[絵画をスキャン]
     Scan --> Recognized{認識成功?}
     Recognized -- No --> Scan
     Recognized -- Yes --> ShowModel[3Dモデルを表示]
@@ -53,20 +63,31 @@ graph TD
     
     Progress --> Done{100% 完了?}
     Done -- No --> Progress
-    Done -- Yes --> Save[BadgeService で記録保存]
+    Done -- Yes --> Save[<b>BadgeService で記録保存</b>]
     
-    ShowMsg --> End([詳細表示・撮影])
+    ShowMsg --> End([<b>詳細表示・撮影</b>])
     Save --> End
+
+    %% スタイル定義
+    classDef startEnd fill:#3e2f28,color:#fff,stroke:#3e2f28
+    classDef decision fill:#d4c5a9,stroke:#3e2f28
+    classDef action fill:#fffdf0,stroke:#3e2f28
+    classDef highlight fill:#f59e0b,color:#000,stroke:#3e2f28
+    
+    class Start,End startEnd
+    class Recognized,CheckAcquired,Done decision
+    class Scan,ShowModel,ShowMsg,Progress action
+    class Save highlight
 ```
 
 ---
 
-## 2. API一覧 (Endpoint Audit)
+## 2. API 一覧 (Endpoint Audit)
 
-アプリケーション内で使用されているすべての API を分類してまとめます。
+アプリケーション内で使用されているすべての API を分類してまとめる。
 
 ### 2.1 内部 API (Internal REST API)
-Next.js の API Routes (`frontend/app/api/v1/`) で実装されているエンドポイントです。
+Next.js の API Routes (`frontend/app/api/v1/`) で実装されているエンドポイントである。
 
 | エンドポイント | メソッド | 説明 | 認証 | キャッシュ |
 | :--- | :--- | :--- | :--- | :--- |
@@ -78,7 +99,7 @@ Next.js の API Routes (`frontend/app/api/v1/`) で実装されているエン�
 | `/api/v1/admin/stats` | `GET` | 管理者用統計データ（集計値） | 要 (Admin) | L2 (Redis) |
 
 ### 2.2 外部サービス・システム API
-直接またはライブラリを介して通信している外部連携です。
+直接またはライブラリを介して通信している外部連携である。
 
 | サービス | 用途 | 備考 |
 | :--- | :--- | :--- |
@@ -92,17 +113,17 @@ Next.js の API Routes (`frontend/app/api/v1/`) で実装されているエン�
 
 ## 3. キャッシュ戦略の定義
 
-ドキュメント内で使用されているキャッシュの階層定義です。
+ドキュメント内で使用されているキャッシュの階層定義である。
 
-- **L1 (Client Cache)**: ブラウザ上の SWR キャッシュ。画面遷移を高速化します。
-- **L2 (Server Cache)**: Redis によるサーバーサイドキャッシュ。複雑な集計の負荷を下げます。
-- **L3 (Edge Cache)**: CDN (Vercel) による静的ファイルのキャッシュ。地理的に近い場所から配信されます。
+- **L1 (Client Cache)**: ブラウザ上の SWR キャッシュ。画面遷移を高速化する。
+- **L2 (Server Cache)**: Redis によるサーバーサイドキャッシュ. 複雑な集計の負荷を下げる。
+- **L3 (Edge Cache)**: CDN (Vercel) による静的ファイルのキャッシュ。地理的に近い場所から配信される。
 
 ---
 
 ## 4. 共通レスポンス形式 (Standard Response)
 
-全ての内部 API は一貫した JSON 構造を返します。
+全ての内部 API は一貫した JSON 構造を返却する。
 
 ### ✅ 成功時 (Success: 200 OK)
 ```json

@@ -2,14 +2,28 @@ import { NextResponse, NextRequest } from "next/server";
 import { supabaseAdmin } from "@backend/lib/supabase";
 
 /**
- * 【プロフィール同期API】
- * ユーザーがアプリを開いた際に、プロフィールの存在確認と最終アクセス日時の更新をサーバー側で行います。
+ * パッケージ: app/api/v1/profile/sync
+ * ユーザープロフィールの存在確認および初期化をサーバー側で実行するためのエンドポイントを提供する。
  */
 
+/**
+ * [概要] プロフィールの同期処理を実行する。
+ * ユーザーがアプリを起動した際に、データベース上にプロフィールレコードが存在することを確認し、なければ作成する。
+ *
+ * @param request [NextRequest] HTTP リクエストオブジェクト。ボディに userId を含む。
+ * @return response [NextResponse] 実行結果（成功またはエラー）を含む JSON レスポンス。
+ *
+ * [技術的ステップ]
+ * 1. 入力チェック: リクエストボディから userId を取得し、不在の場合は 400 エラーを返却する。
+ * 2. 認可ガード: supabaseAdmin クライアントの可用性を確認する。
+ * 3. 永続化処理: profiles テーブルに対して upsert 操作を行う。
+ *    onConflict: 'id' を指定することで、既存レコードがある場合は何もしない（または更新する）冪等な処理を実現する。
+ */
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await request.json();
 
+    // ユーザー ID の存在確認。
     if (!userId) {
       return NextResponse.json(
         {
@@ -20,6 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // データベース設定の確認。
     if (!supabaseAdmin) {
       return NextResponse.json(
         {
@@ -33,6 +48,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // UPSERT 処理：レコードがあれば維持、なければ作成する。
     const { error } = await supabaseAdmin.from("profiles").upsert(
       {
         id: userId,

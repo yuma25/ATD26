@@ -6,11 +6,26 @@ import { BadgeService } from "@backend/services/badgeService";
 import { signInAnonymously, supabase } from "@backend/lib/supabase";
 
 /**
- * 【ホーム画面用カスタムフック】
- * SWR を使用して、データのキャッシュと高速な表示を実現します。
+ * パッケージ: hooks
+ * ホーム画面のライフサイクルと状態管理を統合するフックを提供する。
+ */
+
+/**
+ * [概要] ホーム画面（冒険者の手記）に必要な全データと操作ロジックを提供するカスタムフックである。
+ * 匿名認証の管理、標本リストのソート、カメラ権限の制御、およびユーザー情報の同期を担う。
+ *
+ * @return states & methods [Object] ホーム画面の描画と操作に必要な状態・関数群。
+ *
+ * [技術的ステップ]
+ * 1. 永続データ同期: SWR を用いて標本マスタ、ユーザーセッション、獲得済み履歴、プロフィール情報を並列に取得・キャッシュする。
+ * 2. 状態集計: initialLoading や syncing フラグを各 SWR の状態から算出し、UI での一貫した待機・同期表現を可能にする。
+ * 3. 認証管理: supabase.auth.onAuthStateChange を監視し、サインアウト時にキャッシュを即座にクリアする。
+ * 4. ソートロジック: 標本リストを獲得済みかどうか、および獲得日時順でソートし、ユーザーの「発見の旅」を可視化する。
+ * 5. 操作抽象化: カメラ権限のリクエストや、匿名サインインを伴う人数更新などの非同期操作をカプセル化して提供する。
  */
 export const useHome = () => {
   // --- 内部状態 ---
+  /** ローカルでの人数送信済みフラグ（通信遅延時のUI制御用） */
   const [localSubmitted, setLocalSubmitted] = useState(false);
 
   // 1. 基本的な標本リストの取得 (SWR)
@@ -63,24 +78,27 @@ export const useHome = () => {
 
   // --- 状態の集計 ---
 
-  // 「本当にデータがなくて待機が必要な状態」か判定
+  /** 「本当にデータがなくて待機が必要な初期状態」であるかを判定するフラグ */
   const initialLoading =
     loadingBadges || (userId !== "" && (loadingAcquired || loadingProfile));
 
-  // バックグラウンドでの同機中か判定
+  /** バックグラウンドでのデータ検証（同期）中であるかを判定するフラグ */
   const syncing = validatingBadges || validatingAcquired || validatingProfile;
 
-  // カメラ権限の状態
+  /** カメラ権限の現在の状態 ("prompt" | "granted" | "denied") */
   const [cameraPermission, setCameraPermission] = useState<
     "prompt" | "granted" | "denied"
   >("prompt");
 
   // --- 計算・加工 ---
+  /** 獲得済み標本の ID リストをメモ化する。 */
   const acquiredBadgeIds = useMemo(
     () => acquiredRows.map((r) => r.badge_id),
     [acquiredRows],
   );
 
+  /** 獲得状況を考慮してソートされた標本リストを生成する。
+   * 獲得済みを優先し、かつ獲得が古い順に並べる。未獲得は target_index 順。 */
   const sortedBadges = useMemo(() => {
     if (allBadges.length === 0) return [];
     const acquisitionMap = new Map(
@@ -97,6 +115,7 @@ export const useHome = () => {
     });
   }, [allBadges, acquiredRows]);
 
+  /** ログインユーザーが管理者（メール認証かつ非匿名）であるかを判定する。 */
   const isAdmin = useMemo(() => {
     if (!user) return false;
     return (
@@ -104,6 +123,7 @@ export const useHome = () => {
     );
   }, [user]);
 
+  /** 画面表示用のユーザー識別子を生成する。 */
   const displayId = useMemo(() => {
     if (!userId) return "";
     if (isAdmin) return `STAFF-ADMIN-${userId.slice(0, 4).toUpperCase()}`;
@@ -111,7 +131,8 @@ export const useHome = () => {
   }, [userId, isAdmin]);
 
   /**
-   * --- 認証イベントの監視 ---
+   * [概要] 認証イベントの監視設定である。
+   * サインアウト発生時に、メモリ上のデータや SWR キャッシュを明示的にクリアする。
    */
   useEffect(() => {
     if (!supabase) return;
@@ -129,23 +150,23 @@ export const useHome = () => {
   }, [mutateSession, mutateAcquired, mutateProfile]);
 
   return {
-    /** 並び替え済みの標本リスト */
+    /** ソート済みの標本配列 */
     badges: sortedBadges,
-    /** 獲得済みの標本IDリスト */
+    /** 獲得済みの標本ID配列 */
     acquiredBadgeIds,
-    /** データの検証（同期）中かどうか */
+    /** データ同期中フラグ */
     syncing,
-    /** 初回データ読み込み中かどうか */
+    /** 初期ロード中フラグ */
     initialLoading,
-    /** ユーザーのフルID (UUID) */
+    /** ユーザーのUUID */
     fullUserId: userId,
-    /** 表示用のユーザーID */
+    /** 表示用ID（管理者表示含む） */
     displayId,
-    /** パーティ人数 */
+    /** プロフィール上の人数設定 */
     partySize: profile?.party_size ?? (userId ? null : undefined),
-    /** 景品交換済みかどうか */
+    /** 景品交換済みフラグ */
     isExchanged: profile?.is_exchanged ?? false,
-    /** パーティ人数入力画面を表示すべきかどうか */
+    /** 人数入力モーダルを表示すべきかどうかの判定ロジック */
     showPartyInput:
       !localSubmitted &&
       !isAdmin &&
@@ -153,19 +174,20 @@ export const useHome = () => {
       (userId === "" ||
         (profile !== undefined &&
           (profile?.party_size === undefined || profile?.party_size === null))),
-    /** カメラ権限の状態 */
+    /** カメラ権限状態 */
     cameraPermission,
-    /** 特定の標本を獲得済みかどうかを判定する関数 */
+    /** [概要] 特定の標本を獲得済みか判定する。 @param id [string] 標本ID。 @return boolean */
     isAcquired: (id: string) => acquiredBadgeIds.includes(id),
     /**
-     * カメラの使用許可をリクエストする関数
-     * @returns {Promise<boolean>} 許可された場合は true、拒否された場合は false
+     * [概要] カメラの使用許可を OS/ブラウザにリクエストする。
+     * @return result [Promise<boolean>] 許可された場合は true を返却する。
      */
     requestCameraPermission: async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
         });
+        // 権限確認が目的のため、ストリームは即座に停止する。
         stream.getTracks().forEach((t) => t.stop());
         setCameraPermission("granted");
         return true;
@@ -175,13 +197,13 @@ export const useHome = () => {
       }
     },
     /**
-     * パーティ人数を更新する関数
-     * 匿名ログインが必要な場合は自動的に行います。
-     * @param {number} size - 更新するパーティ人数
-     * @returns {Promise<boolean>} 更新に成功したかどうか
+     * [概要] パーティ人数を更新・保存する。
+     * 必要に応じて匿名サインインを自動実行し、プロフィールを永続化する。
+     * @param size [number] 登録する人数。
+     * @return success [Promise<boolean>] 成功した場合は true を返却する。
      */
     updatePartySize: async (size: number) => {
-      setLocalSubmitted(true); // 💡 ローカルで即座に非表示フラグを立てる
+      setLocalSubmitted(true); // UI フリッカー防止のため、即座にフラグを立てる。
       const u = await signInAnonymously();
       if (!u) {
         setLocalSubmitted(false);
@@ -192,13 +214,13 @@ export const useHome = () => {
         void mutateProfile();
         void mutateSession();
       } else {
-        setLocalSubmitted(false); // 失敗した場合は再表示できるようにする
+        setLocalSubmitted(false); // 失敗時は再入力を促すためフラグを戻す。
       }
       return ok;
     },
     /**
-     * 景品交換を実行する関数
-     * @returns {Promise<boolean>} 更新に成功したかどうか
+     * [概要] 景品交換済みステータスをサーバーに記録する。
+     * @return success [Promise<boolean>] 成功した場合は true を返却する。
      */
     exchangePrize: async () => {
       if (!userId) return false;
@@ -211,7 +233,7 @@ export const useHome = () => {
       return ok;
     },
     /**
-     * 獲得状況とプロフィール情報を再取得（リフレッシュ）する関数
+     * [概要] 獲得状況とプロフィール情報を手動で再取得する。
      */
     refresh: async () => {
       await Promise.all([mutateAcquired(), mutateProfile()]);

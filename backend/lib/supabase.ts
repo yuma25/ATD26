@@ -1,27 +1,38 @@
 /**
- * 【データベース接続設定 (Supabase)】
- * このファイルでは、データベース（Supabase）と通信するための設定と初期化を行っています。
+ * パッケージ: lib
+ * 外部サービス（Supabase）との接続および認証ロジックを提供する。
+ *
+ * 導入パッケージ:
+ * - @supabase/supabase-js: Supabase との通信を行うための公式 SDK。データベース操作および認証機能に使用。
  */
 
 import { createClient, SupabaseClient, User } from "@supabase/supabase-js";
 
-// 環境変数から接続に必要な情報を読み込みます
+/**
+ * 環境変数から接続に必要な構成情報を取得する。
+ * - NEXT_PUBLIC_SUPABASE_URL: Supabase プロジェクトの URL
+ * - NEXT_PUBLIC_SUPABASE_ANON_KEY: 公開用のアノンキー（ブラウザ側で使用可能）
+ * - SUPABASE_SERVICE_ROLE_KEY: 管理者権限を持つサービスロールキー（サーバー側のみで使用）
+ */
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 /**
- * --- クライアントの初期化 ---
+ * [概要] 一般ユーザー用の Supabase クライアントである。
+ * 公開情報の取得や、行レベルセキュリティ (RLS) に基づく一般的な操作に使用する。
+ * 外部 SDK の createClient メソッドを使用して初期化される。
  */
-
-// 1. 一般ユーザー用のクライアント（公開情報を扱う用）
-// 💡 設定が存在する場合のみ作成し、存在しない場合は null にします
 export const supabase: SupabaseClient | null =
   supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey)
     : null;
 
-// 2. 管理者用のクライアント（権限が必要な操作用）
+/**
+ * [概要] 管理者権限（Service Role）を持つ Supabase クライアントである。
+ * RLS をバイパスしてデータベース全体へのフルアクセスを行う必要があるサーバーサイド処理（統計集計など）に使用する。
+ * autoRefreshToken および persistSession を無効化し、ステートレスな実行環境に最適化している。
+ */
 export const supabaseAdmin =
   supabaseUrl && supabaseServiceKey
     ? createClient(supabaseUrl, supabaseServiceKey, {
@@ -30,30 +41,36 @@ export const supabaseAdmin =
     : null;
 
 /**
- * --- 認証（サインイン）処理 ---
- */
-
-/**
- * ログイン状態を確認し、必要に応じて匿名サインイン（名前などを入力しないログイン）を行います。
- * 初心者向けメモ：これにより、ユーザーは面倒な登録なしですぐに標本探しを始められます。
+ * [概要] 匿名サインイン処理を実行し、ユーザー情報を取得する。
+ * ユーザーに明示的な登録作業を強いることなく、アプリの利用（標本獲得の記録など）を可能にするための「匿名認証」を行う。
+ *
+ * @return user [User | null] 認証に成功した場合はユーザーオブジェクトを、失敗した場合は null を返却する。
+ *
+ * [技術的ステップ]
+ * 1. セッション確認: supabase.auth.getSession() を呼び出し、既存のログイン状態を確認する。
+ * 2. 異常検知とリカバリ: セッションエラー（トークン切れ等）を検知した場合は、強制的にサインアウトを実行した上で再サインインを試みる。
+ * 3. 匿名サインイン実行: セッションが存在しない場合、supabase.auth.signInAnonymously() を実行して新しい匿名アカウントを作成する。
+ * 4. 結果返却: 最終的に確定したユーザー情報を返却する。内部での例外は catch して null を返却することで、呼び出し元の処理を継続可能にする。
  */
 export const signInAnonymously = async () => {
   try {
     if (!supabase) return null;
 
-    // 1. 現在のセッション取得を試みる
+    // 1. SDK を使用して現在のセッション取得を試みる。
     const {
       data: { session },
       error: sessionError,
     } = await supabase.auth.getSession();
 
-    // 💡 リフレッシュトークン異常などが発生している場合、強制的にログアウトしてクリア
+    // 2. セッションの不整合（リフレッシュトークン異常など）が発生している場合のリカバリフロー。
     if (sessionError) {
       console.warn(
         "🔄 セッションの不整合を検知しました。リセットします...",
         sessionError.message,
       );
+      // 強制サインアウトにより不整合状態をクリアする。
       await supabase.auth.signOut();
+      // SDK の匿名サインイン機能を呼び出し、クリーンなセッションを確立する。
       const { data, error: retryError } =
         await supabase.auth.signInAnonymously();
       if (retryError) throw retryError;
@@ -62,7 +79,7 @@ export const signInAnonymously = async () => {
 
     let user: User | null = session?.user || null;
 
-    // 2. ログインしていない場合は、新しく「匿名ユーザー」としてサインイン
+    // 3. ログインしていない場合は、新しく「匿名ユーザー」としてサインインを実行する。
     if (!user) {
       console.log("🗝 匿名サインインを開始します...");
       const { data, error: signInError } =
@@ -73,6 +90,7 @@ export const signInAnonymously = async () => {
 
     return user || null;
   } catch (error: unknown) {
+    // 予期せぬエラー（ネットワークエラー等）をキャッチし、ログに記録する。
     console.error("❌ 認証エラーが発生しました:", error);
     return null;
   }

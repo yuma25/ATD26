@@ -1,6 +1,11 @@
 /* eslint-disable */
 "use client";
 
+/**
+ * パッケージ: app/ar
+ * Web ベースの AR (MindAR) を用いた、現実空間への標本投影画面を提供する。
+ */
+
 import { useEffect, useState, useRef } from "react";
 import { useAR } from "@/hooks/useAR";
 import { DiscoveryComplete } from "@/components/ar/DiscoveryComplete";
@@ -10,8 +15,15 @@ import { Camera } from "lucide-react";
 import type { Badge } from "@backend/types";
 
 /**
- * 【ARカメラ画面】
- * スマートフォンのカメラを使用して、現実世界に3D標本を重ねて表示します。
+ * [概要] AR カメラ画面のメインコンポーネントである。
+ * 外部ライブラリ（A-Frame, MindAR）の動的読み込み、AR シーンの構築、およびキャプチャ機能を提供する。
+ *
+ * [技術的ステップ]
+ * 1. ライブラリロード: useEffect にて A-Frame や MindAR、および各種デコーダー（Draco, Meshopt）をローカルパスから順次読み込む。
+ * 2. 独自ローダー設定: THREE.GLTFLoader を拡張し、自作の LoadingManager とデコーダーを統合して、3D モデルのロード進捗を 0-100% で追跡・可視化する。
+ * 3. 動的シーン構築: 取得した全標本データに基づき、A-Frame の <a-entity>（AR マーカーターゲット）を HTML 文字列として生成し、DOM に注入する。
+ * 4. カメラ補正: MindAR が生成するビデオ要素を検知し、インラインスタイルや手動リサイズイベントの発火により、モバイルブラウザ特有のズームや表示の乱れを解消する。
+ * 5. 没入型 UI: 解析ゲージや獲得成功ダイアログを AR レンダリングの上に重ね、リアルタイムなフィードバックを提供する。
  */
 export default function ARPage() {
   const {
@@ -35,19 +47,28 @@ export default function ARPage() {
     captureImage,
   } = useAR();
 
+  /** AR シーンを描画するためのコンテナ要素への参照 */
   const arContainerRef = useRef<HTMLDivElement>(null);
+  /** 重複注入を防ぐためのデータハッシュの保持 */
   const lastInjectedDataHashRef = useRef<string>("");
+  /** クライアントサイドでの実行フラグ */
   const [isClient, setIsClient] = useState(false);
+  /** AR シーン（A-Frame）の準備完了フラグ */
   const [isSceneReady, setIsSceneReady] = useState(false);
 
+  // マウント時にクライアントサイドであることを確定させる。
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // 1. 外部ライブラリの動的ロード（ローカルから読み込み）
+  /**
+   * [概要] 外部 AR ライブラリ群を動的にロードする。
+   * Next.js の標準的なインポートではなく、window オブジェクトへの登録を必要とするスクリプトを制御する。
+   */
   useEffect(() => {
     if (!isClient) return;
 
+    /** 特定のパスからスクリプトをロードし、完了を Promise で返す。 */
     const loadScript = (src: string) => {
       return new Promise((resolve) => {
         if (document.querySelector(`script[src="${src}"]`)) {
@@ -64,6 +85,7 @@ export default function ARPage() {
     const initScripts = async () => {
       setStatus("loading");
       try {
+        // 依存関係に従い、順序を意識してロードを実行。
         await loadScript("/scripts/aframe.min.js");
         await loadScript("/scripts/aframe-extras.min.js");
         await loadScript("/scripts/mindar-image-aframe.prod.js");
@@ -75,6 +97,7 @@ export default function ARPage() {
 
         if (AFRAME && AFRAME.THREE) {
           const THREE = AFRAME.THREE;
+          // 3D モデルのロード進捗を管理するマネージャーの設定。
           const manager = new THREE.LoadingManager();
           manager.onProgress = (url: string, itemsLoaded: number, itemsTotal: number) => {
             const p = Math.floor((itemsLoaded / itemsTotal) * 100);
@@ -82,10 +105,12 @@ export default function ARPage() {
           };
           win._loadingManager = manager;
 
+          // Meshopt デコーダーの初期化。
           let MeshoptDecoder = win.MeshoptDecoder;
           if (typeof MeshoptDecoder === "function") MeshoptDecoder = await MeshoptDecoder();
           if (MeshoptDecoder?.ready) await MeshoptDecoder.ready;
 
+          // GLTF ローダーにデコーダーを登録するためのプロトタイプ拡張。
           if (THREE.GLTFLoader) {
             const originalLoad = THREE.GLTFLoader.prototype.load;
             THREE.GLTFLoader.prototype.load = function (this: any, ...args: any[]) {
@@ -101,6 +126,7 @@ export default function ARPage() {
           }
         }
 
+        // ロード完了後のわずかな待機により、エンジンの安定を図る。
         await new Promise((resolve) => setTimeout(resolve, 300));
         setIsSceneReady(true);
         setStatus("started");
@@ -109,18 +135,23 @@ export default function ARPage() {
       }
     };
 
-    initScripts();
+    void initScripts();
   }, [isClient, setStatus, setModelProgress]);
 
-  // 2. AR シーンの生成
+  /**
+   * [概要] AR シーン（a-scene）を DOM に構築・注入する。
+   * 標本データがロードされ、スクリプトの準備が整ったタイミングで一度だけ実行される。
+   */
   useEffect(() => {
     if (!isSceneReady || !isClient || !isLoaded || allBadges.length === 0) return;
     if (!arContainerRef.current) return;
 
+    // 現在の標本データの状態をハッシュ化して、不要な再描画（エンジン再起動）を防止する。
     const currentDataHash = JSON.stringify(allBadges.map((b: Badge) => `${b.target_index}:${b.model_url}`));
     const existingScene = arContainerRef.current.querySelector("a-scene");
     if (existingScene && lastInjectedDataHashRef.current === currentDataHash) return;
 
+    // 既存のシーンがある場合は停止し、コンテナをクリアする。
     if (existingScene) {
       try {
         const mindarSystem = (existingScene as any).systems?.["mindar-image-system"];
@@ -131,6 +162,7 @@ export default function ARPage() {
 
     lastInjectedDataHashRef.current = currentDataHash;
     
+    // 全標本に対応する AR ターゲット実体を生成。
     const entitiesHtml = allBadges.map((badge: Badge) => {
       const settings = getSpecimenSettings(badge.name);
       return `
@@ -152,6 +184,7 @@ export default function ARPage() {
       `;
     }).join("\n");
 
+    // AR シーン全体の HTML 構造を定義。
     const sceneHtml = `
       <a-scene 
         mindar-image="imageTargetSrc: /targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no; filterMinCF: 0.0001; filterBeta: 0.001;" 
@@ -170,29 +203,33 @@ export default function ARPage() {
     arContainerRef.current.innerHTML = sceneHtml;
     const sceneEl = arContainerRef.current.querySelector("a-scene") as any;
 
+    /**
+     * [概要] AR エンジンを起動し、ビデオ要素の不具合を補正する。
+     */
     const boot = () => {
       if (sceneEl.systems?.["mindar-image-system"]) {
         sceneEl.systems["mindar-image-system"].start();
+        
+        /** カメラ映像のスタイルと挙動を強制的に固定する補正関数。 */
         const fixVideo = (video: HTMLVideoElement) => {
           video.setAttribute("playsinline", "");
           video.muted = true;
-          // 💡 修正: ビデオ要素のスタイルを固定
           video.style.position = "fixed";
           video.style.top = "0";
           video.style.left = "0";
           video.style.width = "100vw";
           video.style.height = "100vh";
           video.style.objectFit = "cover";
-          video.play().catch(() => {});
+          void video.play().catch(() => {});
           
-          // 💡 修正: 起動直後にリサイズを強制して一瞬のズーム現象を防止
+          // レイアウト崩れ防止のため、周期的にリサイズイベントをシミュレートする。
           setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
           setTimeout(() => window.dispatchEvent(new Event("resize")), 500);
         };
         const existingVideo = document.querySelector("video");
         if (existingVideo) fixVideo(existingVideo);
 
-        // ビデオ要素が後から生成される場合（MindARの標準動作）にも対応
+        // MindAR が後から生成するビデオ要素を監視するためのオブザーバー。
         const observer = new MutationObserver((mutations) => {
           mutations.forEach((m) => {
             m.addedNodes.forEach((node) => {
@@ -202,6 +239,7 @@ export default function ARPage() {
         });
         observer.observe(document.body, { childList: true, subtree: true });
 
+        // イベントリスナー（Found/Lost）の登録を遅延実行。
         setTimeout(() => setupListeners(), 500);
       }
     };
@@ -210,18 +248,24 @@ export default function ARPage() {
     else sceneEl.addEventListener("loaded", boot);
   }, [isSceneReady, isClient, isLoaded, allBadges, setupListeners]);
 
-  // 💡 修正: 獲得済みのユニーク数を正確に計算するロジック
+  /**
+   * [概要] 現在獲得済みの標本数（認識中のものを含む）を計算する。
+   * サーバーとの同期遅延を考慮し、ローカルの獲得済み ID セットを用いて一貫性を保つ。
+   * @return count [number] 現在表示すべき獲得数。
+   */
   const getCurrentDisplayCount = () => {
     if (!activeBadge) return acquiredBadgeIds.length;
-    // Set を使うことで、データの同期状況に関わらず「今の標本を含めた合計」を正確に出す
     return new Set([...acquiredBadgeIds, activeBadge.id]).size;
   };
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden select-none touch-none">
+      {/* AR レンダリングコンテナ */}
       <div ref={arContainerRef} className="absolute inset-0 w-full h-full z-10" />
 
+      {/* 2D オーバーレイ UI レイヤー */}
       <div className="absolute inset-0 z-20 pointer-events-none flex flex-col items-center">
+        {/* システム初期化中のローディング */}
         {status === "loading" && (
           <div className="flex flex-col items-center justify-center h-full gap-4 text-white">
             <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -231,6 +275,7 @@ export default function ARPage() {
           </div>
         )}
 
+        {/* AR 稼働中のステータス表示（解析ゲージ、スキャン指示） */}
         {status === "started" && !showSuccess && (
           <div className="w-full h-full flex flex-col items-center justify-between p-8 pt-20 pb-48">
             <div className="text-center space-y-2">
@@ -244,6 +289,7 @@ export default function ARPage() {
                   絵画にカメラを向けてください
                 </p>
               )}
+              {/* 3D モデルの個別読み込み進捗 */}
               {isFound && modelProgress < 100 && (
                 <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 mt-2">
                   <p className="text-white/80 text-[9px] uppercase tracking-[0.2em] animate-pulse">
@@ -253,6 +299,7 @@ export default function ARPage() {
               )}
             </div>
 
+            {/* 解析中（未獲得時）のプログレスバー */}
             {isFound && !acquired && modelProgress === 100 && (
               <div className="w-full max-w-[280px] space-y-4">
                 <div className="flex justify-between items-end">
@@ -267,6 +314,7 @@ export default function ARPage() {
               </div>
             )}
 
+            {/* 獲得済み標本の検知時 */}
             {isFound && acquired && (
               <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-3">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
@@ -276,6 +324,7 @@ export default function ARPage() {
           </div>
         )}
 
+        {/* 標本獲得成功時の全画面オーバーレイ（DiscoveryComplete） */}
         {showSuccess && activeBadge && (
           <div className="h-full w-full flex items-center justify-center pointer-events-auto bg-black/60 backdrop-blur-sm">
             <DiscoveryComplete
@@ -291,6 +340,7 @@ export default function ARPage() {
         )}
       </div>
 
+      {/* スクリーンショット撮影ボタン */}
       {status === "started" && !showSuccess && (
         <div className="absolute bottom-10 left-0 right-0 z-30 flex justify-center px-8">
           <button onClick={captureImage} className="w-16 h-16 bg-white/10 backdrop-blur-xl border-4 border-white rounded-full flex items-center justify-center active:scale-90 transition-transform pointer-events-auto shadow-2xl group">
@@ -301,7 +351,10 @@ export default function ARPage() {
         </div>
       )}
 
+      {/* 閉じるボタン（ホームへの復帰） */}
       <CloseButton onClick={navigateHome} />
+
+      {/* ビデオ要素に対するグローバル補正スタイル */}
       <style jsx global>{`
         video { object-fit: cover !important; width: 100vw !important; height: 100vh !important; position: fixed !important; top: 0 !important; left: 0 !important; z-index: -10 !important; }
       `}</style>

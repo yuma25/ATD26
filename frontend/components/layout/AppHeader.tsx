@@ -1,16 +1,19 @@
 "use client";
 
-/**
- * モジュールのインポート
- */
 import { motion, AnimatePresence } from "framer-motion";
 import { Compass, RefreshCcw, Camera } from "lucide-react";
 
 /**
- * AppHeaderProps の説明：
- * @param fullUserId - ユーザーを一意に識別するID（UUID）
- * @param syncing - データの同期（バックエンドへの保存など）を行っている最中かどうか
- * @param onLaunchAR - 「Scan」ボタンが押されたときにAR機能を起動するための関数
+ * パッケージ: components/layout
+ * アプリケーションの上部ナビゲーションに関連するコンポーネントを提供する。
+ */
+
+/**
+ * [概要] AppHeader コンポーネントのプロパティ定義である。
+ *
+ * @param fullUserId [string] ユーザーを一意に識別する UUID。
+ * @param syncing [boolean] データのバックグラウンド同期（保存処理等）が実行中かどうか。
+ * @param onLaunchAR [() => void] スキャンボタン押下時に AR 機能を起動するためのコールバック関数。
  */
 interface AppHeaderProps {
   fullUserId: string;
@@ -19,8 +22,13 @@ interface AppHeaderProps {
 }
 
 /**
- * AppHeaderコンポーネント本体
- * アプリケーションの最上部に固定表示されるヘッダーです。
+ * [概要] アプリケーションの最上部に固定表示される共通ヘッダーコンポーネントである。
+ * タイトル、ユーザー識別情報の表示、および AR スキャン画面への導線を提供する。
+ *
+ * [技術的ステップ]
+ * 1. 同期表示: AnimatePresence と motion を組み合わせ、syncing 状態に応じた同期中アイコンのフェードイン/アウトを実現する。
+ * 2. ボタン演出: スキャンボタンには hover 時のスケールアップや、背景での継続的な波紋（ripple）アニメーションを適用し、主要なアクションであることを強調する。
+ * 3. 視認性確保: 背景に透過度付きの色と backdrop-blur-md を適用し、スクロールされるコンテンツと重なっても高い可読性を維持する。
  */
 export const AppHeader = ({
   fullUserId,
@@ -30,8 +38,8 @@ export const AppHeader = ({
   return (
     <header className="fixed top-0 left-0 right-0 z-[100] bg-[#e8e2d2]/90 backdrop-blur-md px-4 sm:px-8 py-6 sm:py-10 flex items-center justify-between border-b border-[#3e2f28]/10 shadow-sm">
       {/* 
-        左側：アプリタイトルとユーザーID
-        「フィールドジャーナル」をイメージしたコンパス（方位磁石）アイコンを添えています。
+        左側セクション：アプリ名称とユーザー識別子。
+        「フィールドジャーナル」というコンセプトに合わせ、方位磁石（Compass）アイコンを配置している。
       */}
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-2 sm:gap-3">
@@ -52,11 +60,11 @@ export const AppHeader = ({
       </div>
 
       {/* 
-        右側：同期中アイコンとスキャン（AR）起動ボタン
+        右側セクション：同期状態およびアクションボタン。
       */}
       <div className="flex items-center gap-3 sm:gap-6 flex-shrink-0">
         <AnimatePresence>
-          {/* 同期中のみ、回転するアイコンを表示 */}
+          {/* 同期中のみ、回転アニメーションを伴うアイコンを提示する。 */}
           {syncing && (
             <motion.div
               initial={{ opacity: 0, scale: 0.5 }}
@@ -72,8 +80,8 @@ export const AppHeader = ({
         </AnimatePresence>
 
         {/* 
-          AR起動ボタン：
-          カメラアイコンに波紋のようなアニメーションを付けて、注目を集めます。
+          AR スキャン画面の起動ボタン。
+          カメラアイコンに動的なアニメーション（回転と波紋）を付与し、ユーザーの視線を誘導する。
         */}
         <button
           onClick={onLaunchAR}
@@ -85,7 +93,7 @@ export const AppHeader = ({
               strokeWidth={1.5}
               className="group-hover:rotate-12 transition-transform"
             />
-            {/* 波紋アニメーション */}
+            {/* 波紋アニメーションのレイヤー */}
             <motion.div
               animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
               transition={{ duration: 2, repeat: Infinity }}

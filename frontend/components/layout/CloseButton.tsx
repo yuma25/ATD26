@@ -1,15 +1,18 @@
 "use client";
 
-/**
- * モジュールのインポート
- */
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 /**
- * CloseButtonProps の説明：
- * @param onClick - ボタンが押されたときに実行する独自の関数。指定しない場合は「前のページに戻る」動作になります。
- * @param className - ボタンのスタイルを外部から調整するための追加クラス名
+ * パッケージ: components/layout
+ * 共通の操作ボタン（閉じるボタン等）を提供する。
+ */
+
+/**
+ * [概要] CloseButton コンポーネントのプロパティ定義である。
+ *
+ * @param onClick [() => void] (Optional) ボタン押下時に実行するカスタム処理。指定がない場合はブラウザバックを行う。
+ * @param className [string] (Optional) 追加のスタイルクラス名。
  */
 interface CloseButtonProps {
   onClick?: () => void;
@@ -17,25 +20,29 @@ interface CloseButtonProps {
 }
 
 /**
- * CloseButtonコンポーネント本体
- * 画面の右上に固定表示される「×」ボタンです。
- * AR画面や3Dビューワーなどを閉じるために使用されます。
+ * [概要] 画面の右上に固定表示される「×（閉じる）」ボタンコンポーネントである。
+ * AR 画面や詳細ビューワーなどのオーバーレイ画面を終了するために使用される。
+ *
+ * [技術的ステップ]
+ * 1. ナビゲーション制御: onClick が指定されていない場合、history.length を確認し、戻る先がある場合は router.back() を、ない場合はトップページへ強制遷移させる。
+ * 2. デザイン実装: 丸い背景色付きのデザインを採用し、高い Z-Index により常に最前面に配置される。
+ * 3. モバイル最適化: active:scale-90 により、タッチ操作時の視覚的フィードバックを提供する。
  */
 export const CloseButton = ({ onClick, className = "" }: CloseButtonProps) => {
   const router = useRouter();
 
   /**
-   * ハンドラー関数：ボタンクリック時の動作を決定します。
+   * [概要] ボタンクリック時の動作を決定し、実行する。
    */
   const handleClose = () => {
     console.log("👆 CloseButton clicked");
-    // 独自の処理が渡されている場合はそれを実行
+    // カスタムの onClick 処理が渡されている場合は、それを優先して実行する。
     if (onClick) {
       onClick();
       return;
     }
 
-    // 履歴がある場合は戻り、そうでない場合はホームへ強制移動
+    // 閲覧履歴がある場合は一つ前に戻り、直接 URL 指定で開かれた場合などはホームへ戻す。
     if (window.history.length > 1) {
       router.back();
     } else {
@@ -51,7 +58,7 @@ export const CloseButton = ({ onClick, className = "" }: CloseButtonProps) => {
       style={{ WebkitTapHighlightColor: "transparent" }}
       aria-label="閉じる"
     >
-      {/* Lucide의「X」アイコンを表示 */}
+      {/* Lucide の「X」アイコン（太めの線）を表示する。 */}
       <X size={26} strokeWidth={2.5} />
     </button>
   );

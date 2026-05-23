@@ -1,15 +1,17 @@
 "use client";
 
-/**
- * モジュールのインポート
- * 標本の型定義を読み込みます。
- */
 import { Badge } from "@backend/types";
 
 /**
- * SpecimenRegistrationLabelProps の説明：
- * @param activeBadge - 現在認識されている標本のデータ。認識されていない場合は null になります。
- * @param onClose - ラベルを閉じるための関数
+ * パッケージ: components/ar
+ * AR 体験中に使用されるオーバーレイ UI コンポーネントを提供する。
+ */
+
+/**
+ * [概要] SpecimenRegistrationLabel コンポーネントのプロパティ定義である。
+ *
+ * @param activeBadge [Badge | null] 現在認識されている標本のデータ。認識されていない場合は null。
+ * @param onClose [() => void] ラベルを閉じるためのコールバック関数。
  */
 interface SpecimenRegistrationLabelProps {
   activeBadge: Badge | null;
@@ -17,15 +19,20 @@ interface SpecimenRegistrationLabelProps {
 }
 
 /**
- * SpecimenRegistrationLabelコンポーネント本体
- * 博物館の標本ラベル（キャプション）のようなデザインのUIコンポーネントです。
- * AR画面で標本を認識している間、画面下部に表示されます。
+ * [概要] 博物館の標本ラベル（キャプション）を模したデザインの UI コンポーネントである。
+ * AR 画面で標本を認識している間、作品のメタデータを表示するために使用される。
+ *
+ * [技術的ステップ]
+ * 1. 表示制御: activeBadge が不在の場合は null を返却し、何も描画しない。
+ * 2. デザイン実装: インラインスタイルを用いて、羊皮紙のような質感や影、タイポグラフィを構築する。
+ * 3. アニメーション: label-reveal アニメーション（グローバル CSS で定義）により、下から浮き上がる演出を行う。
+ * 4. データ整形: ユーザー ID の一部や現在の日付を表示し、その場での「公式な記録」であるという没入感を高める。
  */
 export const SpecimenRegistrationLabel = ({
   activeBadge,
   onClose,
 }: SpecimenRegistrationLabelProps) => {
-  // activeBadge が存在しない場合は、何も描画しません（早期リターン）
+  // 標本が選択されていない場合は早期リターンする。
   if (!activeBadge) return null;
 
   return (
@@ -46,7 +53,7 @@ export const SpecimenRegistrationLabel = ({
         overflow: "hidden",
       }}
     >
-      {/* 登録IDを表示（右上に小さく） */}
+      {/* 登録 ID の表示（UUID の先頭 8 文字を抽出） */}
       <div
         style={{
           position: "absolute",
@@ -93,7 +100,7 @@ export const SpecimenRegistrationLabel = ({
         </h2>
       </div>
 
-      {/* 詳細情報エリア（グリッドレイアウト） */}
+      {/* 詳細情報エリア（分類・状態） */}
       <div
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}
       >
@@ -138,7 +145,7 @@ export const SpecimenRegistrationLabel = ({
         </div>
       </div>
 
-      {/* 登録メタデータ（フッター的な情報） */}
+      {/* 登録メタデータ（日付、種別、場所） */}
       <div
         style={{
           marginTop: "30px",
