@@ -1,5 +1,9 @@
 # ATD26_SCIENCE-ART
 
+<p align="center">
+  <img src="./docs/images/cover.png" alt="ATD26_SCIENCE-ART Architecture Cover" width="100%">
+</p>
+
 AR（拡張現実）技術を用いた絵画コレクション・管理アプリケーション。実世界の画像認識を通じて3D作品を発見し、獲得した作品のデジタル図録（2D画像）をユーザーごとに永続化します。
 
 ---
