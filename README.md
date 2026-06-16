@@ -37,20 +37,21 @@ AR（拡張現実）技術を用いた絵画コレクション・管理アプリ
 
 ## 📖 開発ドキュメント
 
-詳細なシステム設計については、以下の各仕様書を参照してください。
+詳細なシステム設計については，以下の各仕様書を参照のこと．
 
-- [📊 システム図面集](./docs/DIAGRAMS.md)
-  - クラス図、シーケンス図、アクティビティ図等によるシステムの可視化
-- [🏛️ アーキテクチャ設計書](./docs/ARCHITECTURE.md)
-  - 3層構造、レンダリング戦略、キャッシュフロー、技術選定根拠
-- [🦋 作品レンダリング設定仕様書](./docs/SPECIMENS.md)
-  - 作品ごとの 3D 設定、シーン別演出ロジック、追加手順
-- [🔌 API・サービス仕様書](./docs/API.md)
-  - 標準レスポンス、認証、エラーコード、冪等性設計
-- [🗄️ データベース設計書](./docs/DATABASE.md)
-  - テーブル定義、複合ユニーク制約、インデックス戦略、Redisキャッシュ詳細
+- **バックエンド技術リファレンス (`docs/backend_ref/`)**
+  - [Domain Layer](./docs/backend_ref/DOMAIN_LAYER.md)：エンティティとインターフェース定義
+  - [Application Layer](./docs/backend_ref/APPLICATION_LAYER.md)：ユースケースの詳細
+  - [Infrastructure Layer](./docs/backend_ref/INFRASTRUCTURE_LAYER.md)：データベース構造，Drizzle ORM実装
+  - [Adapters Layer](./docs/backend_ref/ADAPTERS_LAYER.md)：APIコントローラー仕様
+- **フロントエンド技術リファレンス (`docs/frontend_ref/`)**
+  - [App Layer](./docs/frontend_ref/APP_LAYER.md)：画面構成とAPI通信経路
+  - [Components Layer](./docs/frontend_ref/COMPONENTS_LAYER.md)：UI部品の仕様と演出
+  - [Hooks Layer](./docs/frontend_ref/HOOKS_LAYER.md)：状態管理と非同期通信処理
+  - [Utils & Types Layer](./docs/frontend_ref/UTILS_LAYER.md)：共通処理とグローバル型定義
+  - [Public Assets Layer](./docs/frontend_ref/ASSETS_LAYER.md)：静的資産（3D模型，AR標的等）の管理
 - [⚖️ ライセンス・法的事項](./THIRD_PARTY_LICENSES.md)
-  - 使用ライブラリの帰属表示、プライバシーポリシー、利用規約
+  - 使用ライブラリの帰属表示，プライバシーポリシー，利用規約
 
 ---
 
@@ -67,35 +68,39 @@ AR（拡張現実）技術を用いた絵画コレクション・管理アプリ
 
 ## 📂 プロジェクト構成 (Monorepo)
 
-本プロジェクトは `pnpm workspaces` を採用したモノレポ構成となっており、フロントエンドとバックエンド（ビジネスロジック・型定義）を物理的に分離して管理しています。
+本プロジェクトは `pnpm workspaces` を採用したモノレポ構成となっており，クリーンアーキテクチャ（4層構造）に基づき関心の分離を徹底している．
 
 ```text
 .
-├── backend/            # @app/backend パッケージ
-│   ├── lib/            # ビジネスロジック、ユーティリティ
-│   │   └── specimens/  # 作品ごとの 3D 設定 (座標、アニメーション、ライティング)
-│   ├── services/       # 外部サービス (Supabase, Redis) との連携ロジック
-│   └── types/          # アプリ全体で共有される Zod スキーマおよび型定義
+├── backend/            # バックエンド基盤 (@app/backend)
+│   ├── drizzle/        # マイグレーション履歴
+│   ├── src/
+│   │   ├── adapters/   # Interface Adapters Layer (Controller群)
+│   │   ├── application/# Application Layer (UseCase群)
+│   │   ├── domain/     # Domain Layer (Entity, Repository Interfaces, Constants)
+│   │   └── infrastructure/ # Infrastructure Layer (Drizzle DB, Redis, Supabase)
+│   └── types/          # 互換性維持用の型エクスポート
 ├── frontend/           # Next.js 16 プロジェクト
-│   ├── app/            # App Router (AR画面、ビューワー、管理画面、APIルート)
-│   ├── components/     # React コンポーネント (UIパーツ、AR制御、手記UI)
-│   ├── hooks/          # カスタムフック (SWR, 状態管理, カメラ制御)
-│   ├── public/         # 静的アセット (3Dモデル .glb, マーカーデータ .mind, 画像)
-│   └── __tests__/      # 単体・統合テストコード (Vitest)
-├── docs/               # プロジェクトドキュメント
-│   ├── LEGAL/          # プライバシーポリシー、利用規約
-│   └── (その他)         # 各種設計仕様書
-├── AR_dataset/         # AR マーカー作成用の元データ (管理用)
+│   ├── app/            # App Router (画面，API Routes)
+│   ├── components/     # React コンポーネント (UI，AR制御)
+│   ├── hooks/          # カスタムフック (状態管理，通信)
+│   ├── lib/            # フロントエンド共通処理 (fetcher)
+│   ├── public/         # 静的資産 (3Dモデル, ターゲット, 画像, スクリプト)
+│   └── __tests__/      # テストコード
+├── docs/               # プロジェクトドキュメント (backend_ref, frontend_ref 等)
+├── AR_dataset/         # AR マーカー作成用の元データ
 └── pnpm-workspace.yaml # モノレポ設定
 ```
 
 ---
 
-## 🚀 セットアップ
+## 🚀 環境構築・設定手順
 
-### 1. プロジェクトの初期化
+リポジトリを取得（クローン）した後，以下の手順で開発環境を構築する．
 
-依存関係をインストールします。
+### 1. 依存関係のインストール
+
+プロジェクトのルートディレクトリで以下のコマンドを実行し，必要なパッケージをインストールする．
 
 ```bash
 pnpm install
@@ -103,20 +108,46 @@ pnpm install
 
 ### 2. 環境変数の設定
 
-`frontend/.env.local` を作成し、必要な値を入力してください。
-詳細は `frontend/.env.local.example` を参照してください。
+フロントエンドとバックエンドのそれぞれで環境変数を設定する．
 
+**フロントエンドの設定:**
 ```bash
 cp frontend/.env.local.example frontend/.env.local
 ```
+作成した `frontend/.env.local` に，Supabase および Redis の接続情報，ならびにデータベースの直接接続用URL (`DATABASE_URL`) を入力する．
 
-### 3. 開発サーバーの起動
+**バックエンドの設定:**
+マイグレーションやシード実行のため，バックエンド側にも `.env` ファイルを配置する（フロントエンドと同じ内容で構わない）．
+```bash
+cd backend
+cp ../frontend/.env.local .env
+```
 
-ルートディレクトリで実行可能です。
+### 3. データベースの構築（マイグレーション）
+
+Drizzle ORM を使用して，Supabase 上にテーブル構造を構築する．
+
+```bash
+npx drizzle-kit push
+```
+
+### 4. 初期データ（シード）の投入
+
+AR機能の動作に必要な標本マスターデータをデータベースに投入する．
+
+```bash
+npx tsx src/infrastructure/db/seed.ts
+cd ..
+```
+
+### 5. 開発サーバーの起動
+
+準備が完了したら，ルートディレクトリに戻り，開発サーバーを起動する．
 
 ```bash
 pnpm dev
 ```
+ブラウザで `http://localhost:3000` にアクセスし，画面が表示されることを確認する．
 
 ---
 
