@@ -8,14 +8,19 @@ import * as React from "react";
 declare global {
   interface Window {
     AFRAME: typeof AFRAME;
-    MeshoptDecoder: { ready?: Promise<void> } | (() => Promise<{ ready?: Promise<void> }>) | undefined;
+    MeshoptDecoder:
+      | { ready?: Promise<void> }
+      | (() => Promise<{ ready?: Promise<void> }>)
+      | undefined;
     _loadingManager?: import("three").LoadingManager;
   }
 
   const AFRAME: {
     registerComponent: (name: string, component: object) => void;
     THREE: typeof import("three") & {
-      GLTFLoader: { prototype: { load: (...args: unknown[]) => void } } & (new (...args: unknown[]) => unknown);
+      GLTFLoader: { prototype: { load: (...args: unknown[]) => void } } & (new (
+        ...args: unknown[]
+      ) => unknown);
       DRACOLoader: new () => { setDecoderPath: (path: string) => void };
     };
     [key: string]: unknown;

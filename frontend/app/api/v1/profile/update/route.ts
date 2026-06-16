@@ -27,11 +27,19 @@ export async function POST(request: Request) {
     const { userId, updates } = result.data;
     const resultJson = await profileController.update(userId, updates);
 
-    return NextResponse.json(resultJson, { status: resultJson.success ? 200 : 500 });
+    return NextResponse.json(resultJson, {
+      status: resultJson.success ? 200 : 500,
+    });
   } catch (error) {
     console.error("❌ [API_PROFILE_UPDATE_ERROR]:", error);
     return NextResponse.json(
-      { success: false, error: { code: "SERVER_ERROR", message: "サーバーエラーが発生しました。" } },
+      {
+        success: false,
+        error: {
+          code: "SERVER_ERROR",
+          message: "サーバーエラーが発生しました。",
+        },
+      },
       { status: 500 },
     );
   }

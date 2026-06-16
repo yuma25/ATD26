@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import { signInAnonymously, supabase } from "@backend/src/infrastructure/external/supabase";
+import {
+  signInAnonymously,
+  supabase,
+} from "@backend/src/infrastructure/external/supabase";
 import { fetcher } from "@/lib/fetcher";
 
 /**
@@ -70,11 +73,9 @@ export const useHome = () => {
     isLoading: loadingProfile,
     isValidating: validatingProfile,
     mutate: mutateProfile,
-  } = useSWR(
-    userId ? `/api/v1/profile/get?userId=${userId}` : null,
-    fetcher,
-    { revalidateOnFocus: true },
-  );
+  } = useSWR(userId ? `/api/v1/profile/get?userId=${userId}` : null, fetcher, {
+    revalidateOnFocus: true,
+  });
 
   // --- 状態の集計 ---
 
@@ -93,7 +94,8 @@ export const useHome = () => {
   // --- 計算・加工 ---
   /** 獲得済み標本の ID リストをメモ化する。 */
   const acquiredBadgeIds = useMemo(
-    () => acquiredRows.map((r: unknown) => (r as { badge_id: string }).badge_id),
+    () =>
+      acquiredRows.map((r: unknown) => (r as { badge_id: string }).badge_id),
     [acquiredRows],
   );
 
@@ -219,7 +221,7 @@ export const useHome = () => {
           body: JSON.stringify({ userId: u.id, updates: { party_size: size } }),
         });
         const result = await res.json();
-        
+
         if (result.success) {
           void mutateProfile();
           void mutateSession();
@@ -244,7 +246,7 @@ export const useHome = () => {
           body: JSON.stringify({ userId, updates: { is_exchanged: true } }),
         });
         const result = await res.json();
-        
+
         if (result.success) {
           void mutateProfile();
           return true;

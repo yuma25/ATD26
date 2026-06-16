@@ -11621,18 +11621,14 @@
       t = await this.extractIterations(t);
       const e = t.length / 2,
         s = !1;
-      ((this.accumulatedGrads = t
-        .slice(0, e)
-        .map((o) => ({
+      ((this.accumulatedGrads = t.slice(0, e).map((o) => ({
+        originalName: o.name,
+        variable: o.tensor.variable(s),
+      }))),
+        (this.accumulatedUpdates = t.slice(e, e * 2).map((o) => ({
           originalName: o.name,
           variable: o.tensor.variable(s),
-        }))),
-        (this.accumulatedUpdates = t
-          .slice(e, e * 2)
-          .map((o) => ({
-            originalName: o.name,
-            variable: o.tensor.variable(s),
-          }))));
+        }))));
     }
     getConfig() {
       return {
@@ -11820,18 +11816,14 @@
         }));
       const e = t.length / 2,
         s = !1;
-      ((this.accumulatedFirstMoment = t
-        .slice(0, e)
-        .map((o) => ({
+      ((this.accumulatedFirstMoment = t.slice(0, e).map((o) => ({
+        originalName: o.name,
+        variable: o.tensor.variable(s),
+      }))),
+        (this.accumulatedSecondMoment = t.slice(e, e * 2).map((o) => ({
           originalName: o.name,
           variable: o.tensor.variable(s),
-        }))),
-        (this.accumulatedSecondMoment = t
-          .slice(e, e * 2)
-          .map((o) => ({
-            originalName: o.name,
-            variable: o.tensor.variable(s),
-          }))));
+        }))));
     }
     getConfig() {
       return {
@@ -12196,25 +12188,19 @@
       t = await this.extractIterations(t);
       const e = this.centered ? t.length / 3 : t.length / 2,
         s = !1;
-      ((this.accumulatedMeanSquares = t
-        .slice(0, e)
-        .map((o) => ({
+      ((this.accumulatedMeanSquares = t.slice(0, e).map((o) => ({
+        originalName: o.name,
+        variable: o.tensor.variable(s),
+      }))),
+        (this.accumulatedMoments = t.slice(e, e * 2).map((o) => ({
           originalName: o.name,
           variable: o.tensor.variable(s),
         }))),
-        (this.accumulatedMoments = t
-          .slice(e, e * 2)
-          .map((o) => ({
+        this.centered &&
+          (this.accumulatedMeanGrads = t.slice(e * 2, e * 3).map((o) => ({
             originalName: o.name,
             variable: o.tensor.variable(s),
-          }))),
-        this.centered &&
-          (this.accumulatedMeanGrads = t
-            .slice(e * 2, e * 3)
-            .map((o) => ({
-              originalName: o.name,
-              variable: o.tensor.variable(s),
-            }))));
+          }))));
     }
     getConfig() {
       return {

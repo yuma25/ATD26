@@ -3,7 +3,7 @@ import { ICacheService } from "../../domain/services/ICacheService";
 
 /**
  * [概要] 管理者向けの統計データ（来場者数、デバイス数など）を集計・取得するユースケース。
- * 
+ *
  * [依存関係]
  * - IAdminRepository: 管理者向けの全データ取得やSupabase Authへのアクセスを担当。
  * - ICacheService: 集計結果のキャッシングを担当し、DB負荷を軽減する。
@@ -11,15 +11,15 @@ import { ICacheService } from "../../domain/services/ICacheService";
 export class GetStatsUseCase {
   constructor(
     private adminRepository: IAdminRepository,
-    private cacheService: ICacheService
+    private cacheService: ICacheService,
   ) {}
 
   /**
    * [実行] 統計データを取得する。必要に応じてキャッシュを利用する。
-   * 
+   *
    * @param period 集計期間。
    * @param userId 特定ユーザーの照会を行う場合のユーザーID（null の場合は全体統計）。
-   * 
+   *
    * [技術的ステップ]
    * 1. キャッシュ確認: 全体統計の場合、Redis キャッシュを優先して参照する。
    * 2. スタッフ除外: 認証ユーザーリストから管理者（スタッフ）を抽出し、集計対象から除外する。
@@ -28,8 +28,10 @@ export class GetStatsUseCase {
    */
   async execute(period: string, userId: string | null) {
     // キャッシュキーの生成
-    const cacheKey = userId ? `stats_user_${userId}_${period}` : `stats_global_${period}`;
-    
+    const cacheKey = userId
+      ? `stats_user_${userId}_${period}`
+      : `stats_global_${period}`;
+
     // キャッシュの確認（個別ユーザーでない場合）
     if (!userId) {
       const cached = await this.cacheService.get(cacheKey);
@@ -44,10 +46,15 @@ export class GetStatsUseCase {
       .map((u) => u.id);
 
     const allProfiles = await this.adminRepository.getAllProfiles();
-    const profiles = allProfiles.filter((p) => p?.id && !adminIds.includes(p.id));
+    const profiles = allProfiles.filter(
+      (p) => p?.id && !adminIds.includes(p.id),
+    );
 
     const totalDevices = profiles.length;
-    const totalVisitors = profiles.reduce((acc, curr) => acc + (curr?.party_size || 1), 0);
+    const totalVisitors = profiles.reduce(
+      (acc, curr) => acc + (curr?.party_size || 1),
+      0,
+    );
 
     const data = {
       totalVisitors,

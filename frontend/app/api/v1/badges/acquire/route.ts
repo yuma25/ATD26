@@ -29,7 +29,9 @@ export async function POST(request: Request) {
 
     // 重複登録のハンドリング（Postgres Error Code 23505）
     if (!response.success && response.error) {
-      const details = response.error.details as Record<string, unknown> | undefined;
+      const details = response.error.details as
+        | Record<string, unknown>
+        | undefined;
       if (details?.code === "23505") {
         return NextResponse.json({
           success: true,
@@ -41,11 +43,19 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json(response, { status: response.success ? 200 : 500 });
+    return NextResponse.json(response, {
+      status: response.success ? 200 : 500,
+    });
   } catch (error) {
     console.error("❌ [API_BADGES_ACQUIRE_ERROR]:", error);
     return NextResponse.json(
-      { success: false, error: { code: "SERVER_ERROR", message: "サーバーエラーが発生しました。" } },
+      {
+        success: false,
+        error: {
+          code: "SERVER_ERROR",
+          message: "サーバーエラーが発生しました。",
+        },
+      },
       { status: 500 },
     );
   }

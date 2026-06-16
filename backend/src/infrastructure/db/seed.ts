@@ -5,10 +5,10 @@ import { badges } from "./schema";
 /**
  * 【データベース初期化（シード）スクリプト】
  * アプリケーションの動作に必要な「作品（標本）マスターデータ」をデータベースに投入する。
- * 
+ *
  * [実行方法]
  * backend ディレクトリで `npx tsx src/infrastructure/db/seed.ts` を実行する。
- * 
+ *
  * [技術的ステップ]
  * 1. 接続: dotenv 経由で環境変数（DATABASE_URL）を読み込み、DB へ接続。
  * 2. 投入: 定義された badgeData をループし、名前 (name) をキーにして upsert (onConflictDoUpdate) を実行する。
@@ -63,13 +63,10 @@ async function seed() {
 
   try {
     for (const data of badgeData) {
-      await db
-        .insert(badges)
-        .values(data)
-        .onConflictDoUpdate({
-          target: badges.name,
-          set: data,
-        });
+      await db.insert(badges).values(data).onConflictDoUpdate({
+        target: badges.name,
+        set: data,
+      });
       console.log(`✅ バッジ登録: ${data.name}`);
     }
     console.log("✨ 全ての初期データの投入が完了しました。");

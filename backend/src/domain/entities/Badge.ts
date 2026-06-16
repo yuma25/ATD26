@@ -7,7 +7,10 @@ import { z } from "zod";
 export const BadgeSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1, "名前は必須です"),
-  artist: z.string().nullish().transform(val => val ?? undefined),
+  artist: z
+    .string()
+    .nullish()
+    .transform((val) => val ?? undefined),
   model_url: z
     .string()
     .url("有効なURLを入力してください")

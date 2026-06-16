@@ -8,7 +8,7 @@ export class AdminController {
 
   /**
    * [実行] 統計データを取得し、API レスポンス形式で返却する。
-   * 
+   *
    * @param period 集計期間。
    * @param userId 特定ユーザーの照会を行う場合のユーザーID。
    */
@@ -20,7 +20,11 @@ export class AdminController {
       console.error("❌ [AdminController.getStats]:", error);
       return {
         success: false,
-        error: { code: "STATS_ERROR", message: "統計データの取得に失敗しました。", details: error.message },
+        error: {
+          code: "STATS_ERROR",
+          message: "統計データの取得に失敗しました。",
+          details: error.message,
+        },
       };
     }
   }

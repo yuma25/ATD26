@@ -7,12 +7,15 @@
 ## 📂 use-cases (業務機能実装)
 
 ### `AcquireBadgeUseCase.ts` (標本獲得機能)
+
 利用者が新しい標本を発見し，獲得を記録する際の主要な論理である．
 
 #### 構造解説
+
 本実体は `AcquireBadgeUseCase` クラスとして実装される．初期化の際，獲得記録の永続化を担う `userBadgeRepository` と，利用者の状態を管理する `profileRepository` の二つの抽象操作実体を受け取る設計である．これにより，具体的なデータベース技術に縛られることなく，獲得プロセスにおける「存在確認」と「記録保存」の手順のみを記述する独立性を確保している．
 
 #### `execute(userId, badgeId)`
+
 - **引数**：
   - `userId: string`：獲得した利用者の識別子．
   - `badgeId: string`：獲得対象の標本識別子．
@@ -29,12 +32,15 @@
 ---
 
 ### `GetAllBadgesUseCase.ts` (標本目録取得機能)
+
 システムに登録されているすべての標本情報を取得する．
 
 #### 構造解説
+
 本実体は `GetAllBadgesUseCase` クラスとして実装される．構築時に `badgeRepository` インターフェースを受け取ることで，標本マスターデータの読み取り機能を自身の論理に組み込む設計となっている．
 
 #### `execute()`
+
 - **引数**：なし
 - **戻り値**：`Promise<Badge[]>`
   - 全ての標本実体を格納した配列を返す．
@@ -46,12 +52,15 @@
 ---
 
 ### `GetAcquiredBadgesUseCase.ts` (獲得履歴照会機能)
+
 特定の利用者がこれまでに獲得した標本の目録を取得する．
 
 #### 構造解説
+
 本実体は `GetAcquiredBadgesUseCase` クラスとして実装される．初期化時に `userBadgeRepository` を受け取り，特定の利用者に紐付く履歴データの検索を可能にしている．
 
 #### `execute(userId)`
+
 - **引数**：
   - `userId: string`：対象利用者の識別子．
 - **戻り値**：`Promise<UserBadge[]>`
@@ -64,12 +73,15 @@
 ---
 
 ### `GetProfileUseCase.ts` (プロフィール取得機能)
+
 利用者の人数設定や進行状況などの属性情報を取得する．
 
 #### 構造解説
+
 本実体は `GetProfileUseCase` クラスとして実装される．構築時に `profileRepository` を依存関係として受け取り，利用者の詳細情報を取得する責務を果たす．
 
 #### `execute(userId)`
+
 - **引数**：
   - `userId: string`：対象利用者の識別子．
 - **戻り値**：`Promise<Profile | null>`
@@ -82,12 +94,15 @@
 ---
 
 ### `UpdateProfileUseCase.ts` (プロフィール更新機能)
+
 利用者の属性情報（来場人数，景品交換状態など）を更新する．
 
 #### 構造解説
+
 本実体は `UpdateProfileUseCase` クラスとして実装される．`profileRepository` をコンストラクタで受け取る設計であり，利用者の人数設定や交換状態の更新処理を実行する．
 
 #### `execute(userId, updates)`
+
 - **引数**：
   - `userId: string`：更新対象利用者の識別子．
   - `updates: Partial<Profile>`：更新したい項目を格納した実体．
@@ -101,12 +116,15 @@
 ---
 
 ### `GetStatsUseCase.ts` (統計資料算出機能)
+
 管理者向けに，来場者数や標本獲得数などの集計資料を作成する．
 
 #### 構造解説
+
 本実体は `GetStatsUseCase` クラスとして実装される．管理者向けの高度な集計を行うため，構築時に `adminRepository` と `cacheService` の二つのインターフェースを要求する設計である．集計に必要なデータの取得と，処理の高速化のための記憶制御を外部の具象実装から分離して管理している．
 
 #### `execute(period, userId)`
+
 - **引数**：
   - `period: string`：集計対象の期間（例："24h"，"all"）．
   - `userId: string | null`：個別利用者の詳細を照会を行う場合はその識別子，全体統計の場合は null を指定する．

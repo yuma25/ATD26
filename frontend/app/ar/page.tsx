@@ -119,8 +119,10 @@ export default function ARPage() {
               this: any, // プロトタイプ拡張のため this は any を許容
               ...args: any[]
             ) {
-              this.manager = window._loadingManager || THREE_LOCAL.DefaultLoadingManager;
-              if (window.MeshoptDecoder) this.setMeshoptDecoder(window.MeshoptDecoder);
+              this.manager =
+                window._loadingManager || THREE_LOCAL.DefaultLoadingManager;
+              if (window.MeshoptDecoder)
+                this.setMeshoptDecoder(window.MeshoptDecoder);
               if (THREE_LOCAL.DRACOLoader) {
                 const dracoLoader = new THREE_LOCAL.DRACOLoader();
                 dracoLoader.setDecoderPath("/scripts/");
@@ -163,9 +165,8 @@ export default function ARPage() {
     // 既存のシーンがある場合は停止し、コンテナをクリアする。
     if (existingScene) {
       try {
-        const mindarSystem = (existingScene as unknown as ASceneElement).systems?.[
-          "mindar-image-system"
-        ];
+        const mindarSystem = (existingScene as unknown as ASceneElement)
+          .systems?.["mindar-image-system"];
         if (mindarSystem) mindarSystem.stop();
       } catch (e) {}
       arContainerRef.current.innerHTML = "";
@@ -214,7 +215,9 @@ export default function ARPage() {
     `;
 
     arContainerRef.current.innerHTML = sceneHtml;
-    const sceneEl = arContainerRef.current.querySelector("a-scene") as unknown as ASceneElement;
+    const sceneEl = arContainerRef.current.querySelector(
+      "a-scene",
+    ) as unknown as ASceneElement;
 
     /**
      * [概要] AR エンジンを起動し、ビデオ要素の不具合を補正する。

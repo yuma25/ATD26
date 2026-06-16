@@ -11,14 +11,10 @@ import { fetcher } from "@/lib/fetcher";
  * SWR を用いてデータの再検証、重複排除、およびキャッシュの再利用を行う。
  */
 export function useBadges() {
-  const { data, error, isLoading, mutate } = useSWR(
-    "/api/v1/badges",
-    fetcher,
-    {
-      revalidateOnFocus: false, // 画面がフォーカスを得た際の自動更新をオフにする。
-      dedupingInterval: 60000, // 1分間は同一キーのキャッシュを優先して再利用する。
-    },
-  );
+  const { data, error, isLoading, mutate } = useSWR("/api/v1/badges", fetcher, {
+    revalidateOnFocus: false, // 画面がフォーカスを得た際の自動更新をオフにする。
+    dedupingInterval: 60000, // 1分間は同一キーのキャッシュを優先して再利用する。
+  });
 
   return {
     /** 標本データのマスター配列（初期値は空配列） */

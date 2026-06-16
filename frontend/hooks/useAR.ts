@@ -82,7 +82,8 @@ export const useAR = () => {
 
   /** 獲得済み標本のIDリストをメモ化。 */
   const acquiredBadgeIds = useMemo(
-    () => acquiredRows.map((r: unknown) => (r as { badge_id: string }).badge_id),
+    () =>
+      acquiredRows.map((r: unknown) => (r as { badge_id: string }).badge_id),
     [acquiredRows],
   );
   /** 全ての必須データがロード済みかどうかを判定。 */
@@ -169,7 +170,7 @@ export const useAR = () => {
           });
           const result = await res.json();
           if (result.success || result.data?.status === "ALREADY_ACQUIRED") {
-             void mutateAcquired();
+            void mutateAcquired();
           }
         } catch (error) {
           console.error("Failed to acquire badge:", error);

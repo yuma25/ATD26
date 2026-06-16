@@ -29,30 +29,35 @@ export class DrizzleAdminRepository implements IAdminRepository {
     const results = await db.query.profiles.findMany({
       orderBy: [desc(profiles.createdAt)],
     });
-    return results.map((r) => ProfileSchema.parse({
-      id: r.id,
-      party_size: r.partySize,
-      is_exchanged: r.isExchanged,
-      created_at: r.createdAt,
-      last_seen: r.lastSeen
-    }));
+    return results.map((r) =>
+      ProfileSchema.parse({
+        id: r.id,
+        party_size: r.partySize,
+        is_exchanged: r.isExchanged,
+        created_at: r.createdAt,
+        last_seen: r.lastSeen,
+      }),
+    );
   }
 
   /**
    * [実行] 指定された日時以降のすべての獲得記録を取得する。
-   * 
+   *
    * @param date 集計開始日時。
    */
   async getBadgesSince(date: Date): Promise<UserBadge[]> {
     const results = await db.query.userBadges.findMany({
-      where: (userBadges, { gte }) => gte(userBadges.acquiredAt, date.toISOString()),
+      where: (userBadges, { gte }) =>
+        gte(userBadges.acquiredAt, date.toISOString()),
     });
-    return results.map((r) => UserBadgeSchema.parse({
-      id: r.id,
-      user_id: r.userId,
-      badge_id: r.badgeId,
-      acquired_at: r.acquiredAt
-    }));
+    return results.map((r) =>
+      UserBadgeSchema.parse({
+        id: r.id,
+        user_id: r.userId,
+        badge_id: r.badgeId,
+        acquired_at: r.acquiredAt,
+      }),
+    );
   }
 
   /**

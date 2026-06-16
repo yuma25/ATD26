@@ -5,7 +5,10 @@ import { UserBadge } from "../entities/UserBadge";
  */
 export interface IUserBadgeRepository {
   /** [実行] 新しい獲得記録を作成する。 */
-  create(userId: string, badgeId: string): Promise<{ data: UserBadge | null; error: unknown }>;
+  create(
+    userId: string,
+    badgeId: string,
+  ): Promise<{ data: UserBadge | null; error: unknown }>;
   /** [実行] 指定されたユーザーのすべての獲得記録を取得する。 */
   findByUserId(userId: string): Promise<UserBadge[]>;
 }

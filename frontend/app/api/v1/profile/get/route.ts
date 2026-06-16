@@ -27,7 +27,13 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("❌ [API_PROFILE_GET_ERROR]:", error);
     return NextResponse.json(
-      { success: false, error: { code: "SERVER_ERROR", message: "サーバーエラーが発生しました。" } },
+      {
+        success: false,
+        error: {
+          code: "SERVER_ERROR",
+          message: "サーバーエラーが発生しました。",
+        },
+      },
       { status: 500 },
     );
   }

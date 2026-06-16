@@ -11,7 +11,7 @@ const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
   throw new Error(
-    "❌ 環境変数 DATABASE_URL が設定されていません。Supabase のダッシュボードから接続文字列を取得し、.env ファイルに設定してください。"
+    "❌ 環境変数 DATABASE_URL が設定されていません。Supabase のダッシュボードから接続文字列を取得し、.env ファイルに設定してください。",
   );
 }
 

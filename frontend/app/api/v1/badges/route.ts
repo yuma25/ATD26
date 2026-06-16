@@ -8,7 +8,7 @@ import { badgeController } from "@backend/src/infrastructure/di/container";
 
 /**
  * [概要] システムに登録されているすべての標本情報を取得する。
- * 
+ *
  * @return response 標本データの配列を含む JSON レスポンス。
  */
 export async function GET() {

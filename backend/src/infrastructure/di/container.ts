@@ -30,8 +30,13 @@ const adminRepository = new DrizzleAdminRepository();
 
 // --- アプリケーション層 / ユースケース ---
 const getAllBadgesUseCase = new GetAllBadgesUseCase(badgeRepository);
-const acquireBadgeUseCase = new AcquireBadgeUseCase(userBadgeRepository, profileRepository);
-const getAcquiredBadgesUseCase = new GetAcquiredBadgesUseCase(userBadgeRepository);
+const acquireBadgeUseCase = new AcquireBadgeUseCase(
+  userBadgeRepository,
+  profileRepository,
+);
+const getAcquiredBadgesUseCase = new GetAcquiredBadgesUseCase(
+  userBadgeRepository,
+);
 const getProfileUseCase = new GetProfileUseCase(profileRepository);
 const updateProfileUseCase = new UpdateProfileUseCase(profileRepository);
 const getStatsUseCase = new GetStatsUseCase(adminRepository, cacheService);
@@ -41,13 +46,13 @@ const getStatsUseCase = new GetStatsUseCase(adminRepository, cacheService);
 export const badgeController = new BadgeController(
   getAllBadgesUseCase,
   acquireBadgeUseCase,
-  getAcquiredBadgesUseCase
+  getAcquiredBadgesUseCase,
 );
 
 /** プロフィール操作の窓口 */
 export const profileController = new ProfileController(
   getProfileUseCase,
-  updateProfileUseCase
+  updateProfileUseCase,
 );
 
 /** 管理者操作の窓口 */

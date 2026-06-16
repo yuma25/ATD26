@@ -3,7 +3,7 @@ import { UserBadge } from "../../domain/entities/UserBadge";
 
 /**
  * [概要] 特定ユーザーの獲得済み標本一覧を取得するユースケース。
- * 
+ *
  * [依存関係]
  * - IUserBadgeRepository: 獲得記録データの取得を担当。
  */

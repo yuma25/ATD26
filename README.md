@@ -108,13 +108,45 @@ pnpm install
 フロントエンドとバックエンドのそれぞれで環境変数を設定する．
 
 **フロントエンドの設定:**
+
 ```bash
 cp frontend/.env.local.example frontend/.env.local
 ```
-作成した `frontend/.env.local` に，Supabase および Redis の接続情報，ならびにデータベースの直接接続用URL (`DATABASE_URL`) を入力する．
+
+作成した `frontend/.env.local` に，以下の構成情報を入力する．
+
+```env
+# --- データベース設定 ---
+# Drizzle ORM が PostgreSQL に接続するための URL (マイグレーション・シード用)
+# Supabase Dashboard > Project Settings > Database > Connection string (Connection Pooler) から取得する．
+# ※ IPv4 環境から接続するため、ポート番号が 6543 となるプーラー URL の使用を推奨する．
+DATABASE_URL=postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+
+# --- Supabase 設定 ---
+# クライアントサイド (ブラウザ) で使用する公開キー群
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+
+# サーバーサイド (API Routes) で管理操作を行うための特権キー（⚠️ 外部公開厳禁）
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+# --- Redis 設定 (Upstash) ---
+# 統計データのキャッシングに使用する
+UPSTASH_REDIS_REST_URL=https://xxxx.upstash.io
+UPSTASH_REDIS_REST_TOKEN=xxxx
+```
+
+> [!NOTE]
+> **管理者アクセスの仕組みについて**
+>
+> 本システムでは，環境変数 `ADMIN_EMAIL` のような固定の設定は不要である．
+> Supabase 上で事前に「メールアドレスとパスワード」を用いて登録されたユーザーは，自動的に「運営者（スタッフ）」とみなされる仕組みになっている（一般ユーザーはすべて匿名ログインとなるため区別可能）．
+>
+> 管理者ダッシュボードには `http://localhost:3000/admin/login` からアクセスし，Supabase に登録したメールアドレスでログインを行う．
 
 **バックエンドの設定:**
 マイグレーションやシード実行のため，バックエンド側にも `.env` ファイルを配置する（フロントエンドと同じ内容で構わない）．
+
 ```bash
 cd backend
 cp ../frontend/.env.local .env
@@ -144,6 +176,7 @@ cd ..
 ```bash
 pnpm dev
 ```
+
 ブラウザで `http://localhost:3000` にアクセスし，画面が表示されることを確認する．
 
 ---

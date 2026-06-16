@@ -7,6 +7,7 @@
 ## 📂 db (データベース構成)
 
 ### `index.ts` (接続初期化)
+
 データベース接続の確立と Drizzle ORM の実体化を行う．
 
 - **公開実体**: `db`
@@ -16,100 +17,122 @@
 - **例外処理**: 起動時に環境変数の存在を確認し，接続文字列が未設定の場合は明示的な異常を通知して処理を停止する．
 
 ### `schema.ts` (物理構造定義)
+
 データベースの物理的な表（テーブル）構造を TypeScript で定義する．
 
 #### `profiles` 表 (利用者属性)
-| カラム名 | 型 | 制約 | 説明 |
-| :--- | :--- | :--- | :--- |
-| `id` | `uuid` | PRIMARY KEY | 利用者の一一の識別子． |
-| `party_size` | `integer` | | 来場人数． |
-| `is_exchanged` | `boolean` | DEFAULT false | 景品交換済み旗（フラグ）． |
-| `created_at` | `timestamp` | DEFAULT JST | 作成日時． |
-| `last_seen` | `timestamp` | DEFAULT JST | 最終活動日時． |
+
+| カラム名       | 型          | 制約          | 説明                       |
+| :------------- | :---------- | :------------ | :------------------------- |
+| `id`           | `uuid`      | PRIMARY KEY   | 利用者の一一の識別子．     |
+| `party_size`   | `integer`   |               | 来場人数．                 |
+| `is_exchanged` | `boolean`   | DEFAULT false | 景品交換済み旗（フラグ）． |
+| `created_at`   | `timestamp` | DEFAULT JST   | 作成日時．                 |
+| `last_seen`    | `timestamp` | DEFAULT JST   | 最終活動日時．             |
 
 #### `badges` 表 (標本マスター)
-| カラム名 | 型 | 制約 | 説明 |
-| :--- | :--- | :--- | :--- |
-| `id` | `uuid` | PRIMARY KEY | 標本固有の識別子． |
-| `name` | `text` | UNIQUE | 標本名称． |
-| `artist` | `text` | | 作者名． |
-| `model_url` | `text` | | 3D模型への経路． |
-| `image_url` | `text` | | 標本画像への経路． |
-| `target_index` | `integer` | INDEX | MindARの標的番号． |
+
+| カラム名       | 型        | 制約        | 説明               |
+| :------------- | :-------- | :---------- | :----------------- |
+| `id`           | `uuid`    | PRIMARY KEY | 標本固有の識別子． |
+| `name`         | `text`    | UNIQUE      | 標本名称．         |
+| `artist`       | `text`    |             | 作者名．           |
+| `model_url`    | `text`    |             | 3D模型への経路．   |
+| `image_url`    | `text`    |             | 標本画像への経路． |
+| `target_index` | `integer` | INDEX       | MindARの標的番号． |
 
 #### `user_badges` 表 (獲得記録)
-| カラム名 | 型 | 制約 | 説明 |
-| :--- | :--- | :--- | :--- |
-| `id` | `uuid` | PRIMARY KEY | 獲得記録の識別子． |
-| `user_id` | `uuid` | REFERENCES profiles | 獲得利用者のID． |
-| `badge_id` | `uuid` | REFERENCES badges | 獲得標本のID． |
-| `acquired_at` | `timestamp` | DEFAULT JST | 解析完了日時． |
+
+| カラム名      | 型          | 制約                | 説明               |
+| :------------ | :---------- | :------------------ | :----------------- |
+| `id`          | `uuid`      | PRIMARY KEY         | 獲得記録の識別子． |
+| `user_id`     | `uuid`      | REFERENCES profiles | 獲得利用者のID．   |
+| `badge_id`    | `uuid`      | REFERENCES badges   | 獲得標本のID．     |
+| `acquired_at` | `timestamp` | DEFAULT JST         | 解析完了日時．     |
 
 ### `seed.ts` (初期データ投入)
+
 データベース構築直後の環境において，最低限必要なマスターデータを自動投入するスクリプトである．
+
 - **対象**: `badges` 表（6つのアート作品データ）．
 - **処理論理**: 作品名 (`name`) を一致判定の鍵とした上書き保存（upsert）を実行し，重複登録を防ぎつつ最新の状態を維持する．
 
 ---
 
 ## 📂 repositories (操作実装)
+
 Drizzle ORM を用いて，ドメイン層の抽象定義（リポジトリ・インターフェース）を具現化したクラス群である．
 
 ### `DrizzleBadgeRepository.ts`
+
 標本マスターデータの読み取りを担う具象クラスである．
 
 #### `findAll()`
+
 - **論理詳細**：Drizzle ORM の `db.query.badges.findMany` 機能を使用し，すべての標本レコードを一括取得する．取得時には `targetIndex` 属性に基づき昇順（昇順）で整列を行う．
-- **データ変換**：データベースから返却されるキャメルケース（camelCase）の属性名を，ドメイン実体が期待するスネークケース（snake\_case）構造へ手動で再マッピングし，`BadgeSchema.parse` を通じて厳密な型安全性を確保してから返却する．
+- **データ変換**：データベースから返却されるキャメルケース（camelCase）の属性名を，ドメイン実体が期待するスネークケース（snake_case）構造へ手動で再マッピングし，`BadgeSchema.parse` を通じて厳密な型安全性を確保してから返却する．
 
 #### `findById(id)`
+
 - **論理詳細**：`db.query.badges.findFirst` を使用し，識別子が一致する最初の1件を取得する．
 - **戻り値処理**：該当データが存在する場合は実体へ変換し，存在しない場合は null を返却する．
 
 ### `DrizzleProfileRepository.ts`
+
 利用者の属性情報の永続化を担う具象クラスである．
 
 #### `findById(id)`
+
 - **論理詳細**：`db.query.profiles.findFirst` を使用し，利用者識別子に基づき属性情報を照会する．
 
 #### `upsert(profile)`
+
 - **論理詳細**：Drizzle の `insert().onConflictDoUpdate()` 構文を利用して，高度な冪等性を実現している．
 - **自動更新処理**：更新対象となる属性情報の他に，`lastSeen` 属性（最終活動日時）を SQL の `now() + interval '9 hours'` 命令を用いて日本時間で強制的に上書きする論理を含む．これにより，利用者の活動記録が常に最新の状態に保たれる．
 
 ### `DrizzleUserBadgeRepository.ts`
+
 利用者と標本の獲得関係（記録）を管理する具象クラスである．
 
 #### `create(userId, badgeId)`
+
 - **論理詳細**：`db.insert(userBadges)` 命令を実行し，新しい獲得記録を挿入する．
 - **異常系の伝播**：この処理は `try-catch` 文で保護されており，一意制約違反（同一利用者による重複獲得）などのデータベース異常が発生した際，その詳細情報を `error` 項目に格納して安全に返却する責務を負う．
 
 #### `findByUserId(userId)`
+
 - **論理詳細**：`db.query.userBadges.findMany` を使用し，特定の利用者に紐付くすべての獲得記録を抽出する．
 
 ### `DrizzleAdminRepository.ts`
+
 管理者向けの集計資料作成に必要なデータ操作を担う具象クラスである．
 
 #### `listAuthUsers()`
+
 - **論理詳細**：`supabaseAdmin` クライアントを介して，認証基盤（Auth システム）から直接利用者リストを取得する．
 
 #### `getAllProfiles()`
+
 - **論理詳細**：システム上の全プロフィールを作成日時の降順（最新順）で取得する．
 
 #### `getBadgesSince(date)`
+
 - **論理詳細**：`gte`（以上）比較演算子を使用し，引数で指定された日次以降に発生したすべての獲得記録をフィルタリングして取得する．
 
 #### `getTotalBadgeCount()`
-- **論理詳細**：`db.select({ count: userBadges.id })` を使用し，テーブル全体の有効なレコード数をカウントする．
 
+- **論理詳細**：`db.select({ count: userBadges.id })` を使用し，テーブル全体の有効なレコード数をカウントする．
 
 ---
 
 ## 📂 services (外部機能実装)
 
 ### `RedisCacheService.ts`
+
 Upstash Redis を利用した，揮発性の一時記憶機能を提供する具象クラスである．
 
 #### `get<T>(key)`
+
 - **引数**：`key: string`（取得対象の識別キー）
 - **戻り値**：`Promise<T | null>`（復元されたデータ実体，存在しない場合は null）
 - **論理詳細**：
@@ -118,6 +141,7 @@ Upstash Redis を利用した，揮発性の一時記憶機能を提供する具
   3. **復元処理**：取得した文字列を `JSON.parse` を用いて元のデータ構造へ復元し，ジェネリクス `T` で指定された型として返却する．
 
 #### `set(key, value, ttl)`
+
 - **引数**：
   - `key: string`（保存用の識別キー）
   - `value: any`（保存するデータ本体）
@@ -128,6 +152,7 @@ Upstash Redis を利用した，揮発性の一時記憶機能を提供する具
   2. **永続化要求**：HTTP POST 要求を送信し，指定された有効期限（EX 引数）と共に Redis へ保存する．
 
 #### `delete(key)`
+
 - **引数**：`key: string`（破棄対象の識別キー）
 - **戻り値**：`Promise<void>`
 - **論理詳細**：指定されたキーに関連付けられたデータを Redis 上から即座に抹消する．
@@ -137,19 +162,23 @@ Upstash Redis を利用した，揮発性の一時記憶機能を提供する具
 ## 📂 external (外部接続)
 
 ### `supabase.ts`
+
 Supabase JavaScript SDK の初期化と，認証基盤（Auth）との接続・状態管理を担う．
 
 #### `supabase` (一般通信実体)
+
 - **型**：`SupabaseClient | null`
 - **概要**：公開情報の取得や，利用者権限に基づいた一般的な操作（Anon Key 使用）を行うためのクライアント実体である．
 - **環境依存**：環境変数 `NEXT_PUBLIC_SUPABASE_URL` および `NEXT_PUBLIC_SUPABASE_ANON_KEY` が設定されている場合のみ初期化される．
 
 #### `supabaseAdmin` (特権操作実体)
+
 - **型**：`SupabaseClient | null`
 - **概要**：行レベルセキュリティ (RLS) を迂回し，データベース全体の走査や利用者目録の取得など，管理者専用の操作（Service Role Key 使用）を行うためのクライアント実体である．
 - **技術詳細**：サーバー側での一過性の処理に最適化するため，初期化時に `autoRefreshToken` および `persistSession` を無効化している．
 
 #### `signInAnonymously()`
+
 - **引数**：なし
 - **戻り値**：`Promise<User | null>`（認証に成功した場合は利用者実体を返し，失敗時は null を返す）
 - **概要**：利用者に明示的な登録作業を強いることなく，アプリを利用可能にするための「匿名ログイン」処理を実行する．
@@ -164,9 +193,11 @@ Supabase JavaScript SDK の初期化と，認証基盤（Auth）との接続・�
 ## 📂 di (依存性の注入)
 
 ### `container.ts` (統合器)
+
 システムを構成する各層（レイヤー）の具象クラスを適切な順序で初期化し，相互の依存関係を解決して組み立てる「工場（ファクトリ）」の役割を果たす．
 
 #### 組み立て手順
+
 本ファイルが読み込まれた際，以下の手順でシステム全体が構築される．
 
 1. **インフラ・サービスの初期化**：
@@ -179,6 +210,7 @@ Supabase JavaScript SDK の初期化と，認証基盤（Auth）との接続・�
    完成したユースケースをコントローラーへ注入し，Web要求を処理可能な最終形態を構築する．
 
 #### 外部への公開（エクスポート）
+
 - `badgeController`
 - `profileController`
 - `adminController`
@@ -186,4 +218,5 @@ Supabase JavaScript SDK の初期化と，認証基盤（Auth）との接続・�
 これら組み立て済みのコントローラー実体のみが外部（APIルート等）へ公開される．
 
 #### 設計上の利点
+
 この統合器が存在することにより，APIルートなどの利用側は「どのデータベース技術が使われているか」や「どのクラスがどのクラスに依存しているか」といった複雑な背景を一切知る必要がなくなり，単に公開されたコントローラーの機能を呼び出すだけで済む（疎結合化の実現）．

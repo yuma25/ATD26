@@ -3,7 +3,7 @@ import { Profile } from "../../domain/entities/Profile";
 
 /**
  * [概要] 特定ユーザーのプロフィール情報を取得するユースケース。
- * 
+ *
  * [依存関係]
  * - IProfileRepository: プロフィールデータの取得を担当。
  */

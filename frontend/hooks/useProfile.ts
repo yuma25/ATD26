@@ -29,7 +29,10 @@ export function useProfile(userId: string | undefined) {
    * @param updates [Object] 更新内容。
    * @return success [Promise<boolean>] 更新が成功したかどうかを返却する。
    */
-  const updateProfile = async (updates: { party_size?: number; is_exchanged?: boolean }) => {
+  const updateProfile = async (updates: {
+    party_size?: number;
+    is_exchanged?: boolean;
+  }) => {
     if (!userId) return false;
     try {
       const res = await fetch("/api/v1/profile/update", {

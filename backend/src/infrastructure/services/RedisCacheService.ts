@@ -7,10 +7,10 @@ import { ICacheService } from "../../domain/services/ICacheService";
 export class RedisCacheService implements ICacheService {
   /**
    * [実行] 指定されたキーに対応するキャッシュデータを取得する。
-   * 
+   *
    * @param key 取得対象のキャッシュキー。
    * @return Promise<T | null> キャッシュされていたデータ。存在しない場合は null。
-   * 
+   *
    * [技術的ステップ]
    * 1. 環境変数から Upstash の接続情報を取得。
    * 2. REST API を介して Redis からデータを取得し、JSONパースして返却する。
@@ -35,7 +35,7 @@ export class RedisCacheService implements ICacheService {
 
   /**
    * [実行] 指定されたキーでデータをキャッシュに保存する。
-   * 
+   *
    * @param key 保存対象のキャッシュキー。
    * @param value 保存するデータ本体。
    * @param ttl 有効期限（秒）。デフォルトは300秒（5分）。
@@ -61,7 +61,7 @@ export class RedisCacheService implements ICacheService {
 
   /**
    * [実行] 指定されたキーのキャッシュデータを削除する。
-   * 
+   *
    * @param key 削除対象のキャッシュキー。
    */
   async delete(key: string): Promise<void> {
