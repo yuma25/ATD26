@@ -5,7 +5,14 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "dependencies": {
-    "zod": "^3.22.4",
-    "@supabase/supabase-js": "^2.40.0"
+    "@supabase/supabase-js": "^2.40.0",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.39",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10"
   }
 }

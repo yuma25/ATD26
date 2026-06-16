@@ -17,9 +17,9 @@ import {
   Users,
 } from "lucide-react";
 import { useHome } from "@/hooks/useHome";
-import { Badge } from "@backend/types";
+import { Badge } from "@backend/src/domain/entities/Badge";
 import { BadgeCard } from "@/components/BadgeCard";
-import { calculateProgress } from "@backend/lib/logic";
+import { calculateProgress } from "@backend/src/domain/logic/logic";
 import { useScrollManager } from "@/hooks/useScrollManager";
 import { FinalLogModal } from "@/components/journal/FinalLogModal";
 import { useRouter } from "next/navigation";

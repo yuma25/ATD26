@@ -7,7 +7,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@backend/lib/supabase";
+import { supabase } from "@backend/src/infrastructure/external/supabase";
 import {
   Users,
   Award,

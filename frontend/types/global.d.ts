@@ -6,11 +6,36 @@ import * as React from "react";
  * TypeScriptから安全に使用できるように定義します。
  */
 declare global {
+  interface Window {
+    AFRAME: any;
+    MeshoptDecoder: any;
+    _loadingManager?: import("three").LoadingManager;
+  }
+
   const AFRAME: {
     registerComponent: (name: string, component: object) => void;
-    [key: string]: unknown;
+    THREE: typeof import("three") & {
+      GLTFLoader: any;
+      DRACOLoader: any;
+    };
+    [key: string]: any;
   };
   const THREE: typeof import("three");
+
+  /**
+   * A-Frame の A-Scene 要素の型定義
+   */
+  interface ASceneElement extends HTMLElement {
+    systems: {
+      "mindar-image-system": {
+        start: () => void;
+        stop: () => void;
+        controller?: unknown;
+      };
+      [key: string]: any;
+    };
+    hasLoaded: boolean;
+  }
 
   /**
    * Reactコンポーネントの中で、標準のHTMLタグ（divやspan）以外の

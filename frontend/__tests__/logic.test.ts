@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateProgress } from "@backend/lib/logic";
+import { calculateProgress } from "@backend/src/domain/logic/logic";
 
 /**
  * パッケージ: __tests__

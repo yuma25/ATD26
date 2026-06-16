@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import { BadgeService } from "@backend/services/badgeService";
-import { signInAnonymously, supabase } from "@backend/lib/supabase";
+import { signInAnonymously, supabase } from "@backend/src/infrastructure/external/supabase";
+import { fetcher } from "@/lib/fetcher";
 
 /**
  * パッケージ: hooks
@@ -33,7 +33,7 @@ export const useHome = () => {
     data: allBadges = [],
     isLoading: loadingBadges,
     isValidating: validatingBadges,
-  } = useSWR("all-badges", () => BadgeService.getAllBadges(), {
+  } = useSWR("/api/v1/badges", fetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 60000,
   });
@@ -60,8 +60,8 @@ export const useHome = () => {
     isValidating: validatingAcquired,
     mutate: mutateAcquired,
   } = useSWR(
-    userId ? `acquired-${userId}` : null,
-    () => BadgeService.getAcquiredBadges(userId),
+    userId ? `/api/v1/badges/acquired?userId=${userId}` : null,
+    fetcher,
     { revalidateOnFocus: true },
   );
 
@@ -71,8 +71,8 @@ export const useHome = () => {
     isValidating: validatingProfile,
     mutate: mutateProfile,
   } = useSWR(
-    userId ? `profile-${userId}` : null,
-    () => BadgeService.getProfile(userId),
+    userId ? `/api/v1/profile/get?userId=${userId}` : null,
+    fetcher,
     { revalidateOnFocus: true },
   );
 
@@ -93,7 +93,7 @@ export const useHome = () => {
   // --- 計算・加工 ---
   /** 獲得済み標本の ID リストをメモ化する。 */
   const acquiredBadgeIds = useMemo(
-    () => acquiredRows.map((r) => r.badge_id),
+    () => acquiredRows.map((r: unknown) => (r as { badge_id: string }).badge_id),
     [acquiredRows],
   );
 
@@ -101,8 +101,11 @@ export const useHome = () => {
    * 獲得済みを優先し、かつ獲得が古い順に並べる。未獲得は target_index 順。 */
   const sortedBadges = useMemo(() => {
     if (allBadges.length === 0) return [];
-    const acquisitionMap = new Map(
-      acquiredRows.map((r) => [r.badge_id, r.acquired_at]),
+    const acquisitionMap = new Map<string, string>(
+      acquiredRows.map((r: unknown) => {
+        const item = r as { badge_id: string; acquired_at: string };
+        return [item.badge_id, item.acquired_at];
+      }),
     );
 
     return [...allBadges].sort((a, b) => {
@@ -209,14 +212,24 @@ export const useHome = () => {
         setLocalSubmitted(false);
         return false;
       }
-      const ok = await BadgeService.updateProfile(u.id, { party_size: size });
-      if (ok) {
-        void mutateProfile();
-        void mutateSession();
-      } else {
-        setLocalSubmitted(false); // 失敗時は再入力を促すためフラグを戻す。
+      try {
+        const res = await fetch("/api/v1/profile/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: u.id, updates: { party_size: size } }),
+        });
+        const result = await res.json();
+        
+        if (result.success) {
+          void mutateProfile();
+          void mutateSession();
+          return true;
+        }
+      } catch (error) {
+        console.error(error);
       }
-      return ok;
+      setLocalSubmitted(false); // 失敗時は再入力を促すためフラグを戻す。
+      return false;
     },
     /**
      * [概要] 景品交換済みステータスをサーバーに記録する。
@@ -224,14 +237,24 @@ export const useHome = () => {
      */
     exchangePrize: async () => {
       if (!userId) return false;
-      const ok = await BadgeService.updateProfile(userId, {
-        is_exchanged: true,
-      });
-      if (ok) {
-        void mutateProfile();
+      try {
+        const res = await fetch("/api/v1/profile/update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, updates: { is_exchanged: true } }),
+        });
+        const result = await res.json();
+        
+        if (result.success) {
+          void mutateProfile();
+          return true;
+        }
+      } catch (error) {
+        console.error(error);
       }
-      return ok;
+      return false;
     },
+
     /**
      * [概要] 獲得状況とプロフィール情報を手動で再取得する。
      */

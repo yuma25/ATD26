@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Award, AlertTriangle, Ticket } from "lucide-react";
-import { Badge } from "@backend/types";
+import { Badge } from "@backend/src/domain/entities/Badge";
 
 /**
  * パッケージ: components/journal

@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@backend/types";
+import { Badge } from "@backend/src/domain/entities/Badge";
 
 /**
  * パッケージ: components/ar

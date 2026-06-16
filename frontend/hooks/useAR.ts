@@ -2,9 +2,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import useSWR from "swr";
 
-import { supabase } from "@backend/lib/supabase";
-import { Badge } from "@backend/types";
-import { BadgeService } from "@backend/services/badgeService";
+import { supabase } from "@backend/src/infrastructure/external/supabase";
+import { Badge } from "@backend/src/domain/entities/Badge";
+import { fetcher } from "@/lib/fetcher";
 
 /**
  * パッケージ: hooks
@@ -57,8 +57,8 @@ export const useAR = () => {
 
   // 全標本データをバックエンドから取得。
   const { data: allBadges = [], isLoading: loadingBadges } = useSWR(
-    "all-badges",
-    () => BadgeService.getAllBadges(),
+    "/api/v1/badges",
+    fetcher,
     { revalidateOnFocus: false, dedupingInterval: 60000 },
   );
 
@@ -68,21 +68,21 @@ export const useAR = () => {
     isLoading: loadingAcquired,
     mutate: mutateAcquired,
   } = useSWR(
-    userId ? `acquired-${userId}` : null,
-    () => BadgeService.getAcquiredBadges(userId),
+    userId ? `/api/v1/badges/acquired?userId=${userId}` : null,
+    fetcher,
     { revalidateOnFocus: false },
   );
 
   // ユーザープロフィール（景品交換済みフラグ等）を取得。
   const { data: profile } = useSWR(
-    userId ? `profile-${userId}` : null,
-    () => BadgeService.getProfile(userId),
+    userId ? `/api/v1/profile/get?userId=${userId}` : null,
+    fetcher,
     { revalidateOnFocus: false },
   );
 
   /** 獲得済み標本のIDリストをメモ化。 */
   const acquiredBadgeIds = useMemo(
-    () => acquiredRows.map((r) => r.badge_id),
+    () => acquiredRows.map((r: unknown) => (r as { badge_id: string }).badge_id),
     [acquiredRows],
   );
   /** 全ての必須データがロード済みかどうかを判定。 */
@@ -161,11 +161,19 @@ export const useAR = () => {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
-        const { data: newAcquired } = await BadgeService.acquireBadge(
-          user.id,
-          badgeId,
-        );
-        if (newAcquired) void mutateAcquired();
+        try {
+          const res = await fetch("/api/v1/badges/acquire", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: user.id, badgeId }),
+          });
+          const result = await res.json();
+          if (result.success || result.data?.status === "ALREADY_ACQUIRED") {
+             void mutateAcquired();
+          }
+        } catch (error) {
+          console.error("Failed to acquire badge:", error);
+        }
       }
     },
     [mutateAcquired],

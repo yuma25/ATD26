@@ -10,9 +10,9 @@ import { useEffect, useState, useRef } from "react";
 import { useAR } from "@/hooks/useAR";
 import { DiscoveryComplete } from "@/components/ar/DiscoveryComplete";
 import { CloseButton } from "@/components/layout/CloseButton";
-import { getSpecimenSettings } from "@backend/lib/constants";
+import { getSpecimenSettings } from "@backend/src/domain/constants/constants";
 import { Camera } from "lucide-react";
-import type { Badge } from "@backend/types";
+import type { Badge } from "@backend/src/domain/entities/Badge";
 
 /**
  * [概要] AR カメラ画面のメインコンポーネントである。
@@ -92,40 +92,37 @@ export default function ARPage() {
         await loadScript("/scripts/meshopt_decoder.js");
         await loadScript("/scripts/draco_decoder.js");
 
-        const win = window as any;
-        const AFRAME = win.AFRAME;
-
-        if (AFRAME && AFRAME.THREE) {
-          const THREE = AFRAME.THREE;
+        if (window.AFRAME && window.AFRAME.THREE) {
+          const THREE_LOCAL = window.AFRAME.THREE;
           // 3D モデルのロード進捗を管理するマネージャーの設定。
-          const manager = new THREE.LoadingManager();
+          const manager = new THREE_LOCAL.LoadingManager();
           manager.onProgress = (
-            url: string,
+            _url: string,
             itemsLoaded: number,
             itemsTotal: number,
           ) => {
             const p = Math.floor((itemsLoaded / itemsTotal) * 100);
             setModelProgress(p);
           };
-          win._loadingManager = manager;
+          window._loadingManager = manager;
 
           // Meshopt デコーダーの初期化。
-          let MeshoptDecoder = win.MeshoptDecoder;
-          if (typeof MeshoptDecoder === "function")
-            MeshoptDecoder = await MeshoptDecoder();
-          if (MeshoptDecoder?.ready) await MeshoptDecoder.ready;
+          if (typeof window.MeshoptDecoder === "function") {
+            window.MeshoptDecoder = await window.MeshoptDecoder();
+          }
+          if (window.MeshoptDecoder?.ready) await window.MeshoptDecoder.ready;
 
           // GLTF ローダーにデコーダーを登録するためのプロトタイプ拡張。
-          if (THREE.GLTFLoader) {
-            const originalLoad = THREE.GLTFLoader.prototype.load;
-            THREE.GLTFLoader.prototype.load = function (
-              this: any,
+          if (THREE_LOCAL.GLTFLoader) {
+            const originalLoad = THREE_LOCAL.GLTFLoader.prototype.load;
+            THREE_LOCAL.GLTFLoader.prototype.load = function (
+              this: any, // プロトタイプ拡張のため this は any を許容
               ...args: any[]
             ) {
-              this.manager = win._loadingManager || THREE.DefaultLoadingManager;
-              if (MeshoptDecoder) this.setMeshoptDecoder(MeshoptDecoder);
-              if (THREE.DRACOLoader) {
-                const dracoLoader = new THREE.DRACOLoader();
+              this.manager = window._loadingManager || THREE_LOCAL.DefaultLoadingManager;
+              if (window.MeshoptDecoder) this.setMeshoptDecoder(window.MeshoptDecoder);
+              if (THREE_LOCAL.DRACOLoader) {
+                const dracoLoader = new THREE_LOCAL.DRACOLoader();
                 dracoLoader.setDecoderPath("/scripts/");
                 this.setDRACOLoader(dracoLoader);
               }
@@ -166,7 +163,7 @@ export default function ARPage() {
     // 既存のシーンがある場合は停止し、コンテナをクリアする。
     if (existingScene) {
       try {
-        const mindarSystem = (existingScene as any).systems?.[
+        const mindarSystem = (existingScene as unknown as ASceneElement).systems?.[
           "mindar-image-system"
         ];
         if (mindarSystem) mindarSystem.stop();
@@ -217,7 +214,7 @@ export default function ARPage() {
     `;
 
     arContainerRef.current.innerHTML = sceneHtml;
-    const sceneEl = arContainerRef.current.querySelector("a-scene") as any;
+    const sceneEl = arContainerRef.current.querySelector("a-scene") as unknown as ASceneElement;
 
     /**
      * [概要] AR エンジンを起動し、ビデオ要素の不具合を補正する。

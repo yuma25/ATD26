@@ -7,7 +7,7 @@
  */
 import { motion } from "framer-motion";
 import { Check, Ticket, Award, Sparkles, ArrowRight } from "lucide-react";
-import type { Badge } from "@backend/types";
+import type { Badge } from "@backend/src/domain/entities/Badge";
 
 /**
  * [概要] DiscoveryComplete コンポーネントのプロパティ定義である。
