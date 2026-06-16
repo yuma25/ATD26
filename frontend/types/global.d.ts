@@ -7,18 +7,18 @@ import * as React from "react";
  */
 declare global {
   interface Window {
-    AFRAME: any;
-    MeshoptDecoder: any;
+    AFRAME: typeof AFRAME;
+    MeshoptDecoder: { ready?: Promise<void> } | (() => Promise<{ ready?: Promise<void> }>) | undefined;
     _loadingManager?: import("three").LoadingManager;
   }
 
   const AFRAME: {
     registerComponent: (name: string, component: object) => void;
     THREE: typeof import("three") & {
-      GLTFLoader: any;
-      DRACOLoader: any;
+      GLTFLoader: { prototype: { load: (...args: unknown[]) => void } } & (new (...args: unknown[]) => unknown);
+      DRACOLoader: new () => { setDecoderPath: (path: string) => void };
     };
-    [key: string]: any;
+    [key: string]: unknown;
   };
   const THREE: typeof import("three");
 
@@ -32,7 +32,7 @@ declare global {
         stop: () => void;
         controller?: unknown;
       };
-      [key: string]: any;
+      [key: string]: unknown;
     };
     hasLoaded: boolean;
   }

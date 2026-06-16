@@ -11,7 +11,13 @@ export async function GET(req: NextRequest) {
   try {
     if (!supabaseAdmin) {
       return NextResponse.json(
-        { success: false, error: { code: "DB_CONFIG_MISSING", message: "接続設定が見つかりません" } },
+        {
+          success: false,
+          error: {
+            code: "DB_CONFIG_MISSING",
+            message: "接続設定が見つかりません",
+          },
+        },
         { status: 500 },
       );
     }
@@ -20,19 +26,28 @@ export async function GET(req: NextRequest) {
     const token = authHeader?.split(" ")[1];
     if (!token) {
       return NextResponse.json(
-        { success: false, error: { code: "UNAUTHORIZED", message: "ログインが必要です" } },
+        {
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "ログインが必要です" },
+        },
         { status: 401 },
       );
     }
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
 
     const isEmailUser = user?.app_metadata?.provider === "email";
     const isAnonymous = user?.is_anonymous;
 
     if (authError || !user || isAnonymous || !isEmailUser) {
       return NextResponse.json(
-        { success: false, error: { code: "FORBIDDEN", message: "管理者権限がありません" } },
+        {
+          success: false,
+          error: { code: "FORBIDDEN", message: "管理者権限がありません" },
+        },
         { status: 403 },
       );
     }
@@ -43,10 +58,14 @@ export async function GET(req: NextRequest) {
 
     const result = await adminController.getStats(period, userId);
     return NextResponse.json(result, { status: result.success ? 200 : 500 });
-  } catch (error: any) {
-    console.error("Stats API Error:", error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("Stats API Error:", message);
     return NextResponse.json(
-      { success: false, error: { code: "SERVER_ERROR", message: error.message } },
+      {
+        success: false,
+        error: { code: "SERVER_ERROR", message },
+      },
       { status: 500 },
     );
   }
