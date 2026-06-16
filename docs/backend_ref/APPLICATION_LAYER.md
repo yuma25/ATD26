@@ -6,52 +6,117 @@
 
 ## 📂 use-cases (業務機能実装)
 
-### `AcquireBadgeUseCase.ts`
-標本の獲得（発見記録）を永続化する主要な論理である．
-- **`execute(userId: string, badgeId: string): Promise<{ data: UserBadge | null, error: unknown }>`**
-  - **引数**：
-    - `userId`：獲得した利用者の識別子．
-    - `badgeId`：獲得対象の標本識別子．
-  - **処理内容**：
-    1. プロフィールの存在確認を行い，不在であれば初期プロフィールを自動作成（遅延初期化）する．
-    2. 抽象操作（リポジトリ）を介して `user_badges` 表に記録を保存する．
-  - **戻り値**：登録されたデータ，または異常実体．
+### `AcquireBadgeUseCase.ts` (標本獲得機能)
+利用者が新しい標本を発見し，獲得を記録する際の主要な論理である．
 
-### `GetAllBadgesUseCase.ts`
-すべての標本基本データを取得する．
-- **`execute(): Promise<Badge[]>`**
-  - **処理内容**：標本リポジトリから全件を取得する．
-  - **戻り値**：標本実体の配列である．
+#### 構造解説
+本実体は `AcquireBadgeUseCase` クラスとして実装される．初期化の際，獲得記録の永続化を担う `userBadgeRepository` と，利用者の状態を管理する `profileRepository` の二つの抽象操作実体を受け取る設計である．これにより，具体的なデータベース技術に縛られることなく，獲得プロセスにおける「存在確認」と「記録保存」の手順のみを記述する独立性を確保している．
 
-### `GetAcquiredBadgesUseCase.ts`
-特定利用者がすでに獲得した標本の目録を取得する．
-- **`execute(userId: string): Promise<UserBadge[]>`**
-  - **引数**：`userId`：対象利用者の識別子．
-  - **戻り値**：獲得記録の配列である．
+#### `execute(userId, badgeId)`
+- **引数**：
+  - `userId: string`：獲得した利用者の識別子．
+  - `badgeId: string`：獲得対象の標本識別子．
+- **戻り値**：`Promise<{ data: UserBadge | null, error: unknown }>`
+  - 登録に成功した場合は獲得記録実体を，失敗した場合は異常情報を返す．
+- **業務詳細**：
+  1. **存在確認**：`IProfileRepository` を使用して，当該利用者のプロフィールが既に存在するかを確認する．
+  2. **自動初期化**：プロフィールが存在しない場合，外部鍵制約違反を防ぐため，最小限の構成でプロフィールを自動作成する（遅延初期化）．
+  3. **記録保存**：`IUserBadgeRepository` を介して，利用者と標本の紐付け（獲得記録）を永続化する．
+- **依存関係**：
+  - `IUserBadgeRepository`：獲得記録の保存を担当する．
+  - `IProfileRepository`：利用者プロフィールの管理を担当する．
 
-### `GetProfileUseCase.ts`
-利用者の属性情報を取得する．
-- **`execute(userId: string): Promise<Profile | null>`**
-  - **引数**：`userId`：対象利用者の識別子．
-  - **戻り値**：プロフィール実体，または存在しない場合は null を返す．
+---
 
-### `UpdateProfileUseCase.ts`
-利用者のプロフィール情報（人数，景品交換状態など）を更新する．
-- **`execute(userId: string, updates: Partial<Profile>): Promise<boolean>`**
-  - **引数**：
-    - `userId`：更新対象利用者の識別子．
-    - `updates`：更新したい項目を格納した構造体．
-  - **戻り値**：更新の成否を示す真偽値（boolean）である．
+### `GetAllBadgesUseCase.ts` (標本目録取得機能)
+システムに登録されているすべての標本情報を取得する．
 
-### `GetStatsUseCase.ts`
-管理者向けの集計資料（来場者数，装置数等）を算出する．
-- **`execute(period: string, userId: string | null): Promise<any>`**
-  - **引数**：
-    - `period`：集計期間（"1h"，"24h"，"all" 等）．
-    - `userId`：特定利用者の照会を行う場合はその識別子，全体統計の場合は null を指定する．
-  - **処理内容**：
-    1. 高速記憶（Redisキャッシュ）を確認し，存在すればそれを即座に返す．
-    2. 全利用者から「運営側（管理者）」を除外する．
-    3. 有効な利用者のプロフィールから，合計来場人数（総来場者数）などを算出する．
-    4. 結果を高速記憶に保存した上で返却する．
-  - **戻り値**：集計結果データである．
+#### 構造解説
+本実体は `GetAllBadgesUseCase` クラスとして実装される．構築時に `badgeRepository` インターフェースを受け取ることで，標本マスターデータの読み取り機能を自身の論理に組み込む設計となっている．
+
+#### `execute()`
+- **引数**：なし
+- **戻り値**：`Promise<Badge[]>`
+  - 全ての標本実体を格納した配列を返す．
+- **業務詳細**：
+  1. 標本リポジトリの `findAll` 機能を呼び出し，全件を取得する．
+- **依存関係**：
+  - `IBadgeRepository`：標本データの読み取りを担当する．
+
+---
+
+### `GetAcquiredBadgesUseCase.ts` (獲得履歴照会機能)
+特定の利用者がこれまでに獲得した標本の目録を取得する．
+
+#### 構造解説
+本実体は `GetAcquiredBadgesUseCase` クラスとして実装される．初期化時に `userBadgeRepository` を受け取り，特定の利用者に紐付く履歴データの検索を可能にしている．
+
+#### `execute(userId)`
+- **引数**：
+  - `userId: string`：対象利用者の識別子．
+- **戻り値**：`Promise<UserBadge[]>`
+  - 利用者に紐付く獲得記録の配列を返す．
+- **業務詳細**：
+  1. 獲得記録リポジトリの `findByUserId` 機能を呼び出し，当該利用者の全履歴を抽出する．
+- **依存関係**：
+  - `IUserBadgeRepository`：獲得記録の検索を担当する．
+
+---
+
+### `GetProfileUseCase.ts` (プロフィール取得機能)
+利用者の人数設定や進行状況などの属性情報を取得する．
+
+#### 構造解説
+本実体は `GetProfileUseCase` クラスとして実装される．構築時に `profileRepository` を依存関係として受け取り，利用者の詳細情報を取得する責務を果たす．
+
+#### `execute(userId)`
+- **引数**：
+  - `userId: string`：対象利用者の識別子．
+- **戻り値**：`Promise<Profile | null>`
+  - プロフィール実体を返す．存在しない場合は null を返す．
+- **業務詳細**：
+  1. プロフィールリポジトリの `findById` 機能を呼び出し，利用者の詳細情報を取得する．
+- **依存関係**：
+  - `IProfileRepository`：プロフィールデータの取得を担当する．
+
+---
+
+### `UpdateProfileUseCase.ts` (プロフィール更新機能)
+利用者の属性情報（来場人数，景品交換状態など）を更新する．
+
+#### 構造解説
+本実体は `UpdateProfileUseCase` クラスとして実装される．`profileRepository` をコンストラクタで受け取る設計であり，利用者の人数設定や交換状態の更新処理を実行する．
+
+#### `execute(userId, updates)`
+- **引数**：
+  - `userId: string`：更新対象利用者の識別子．
+  - `updates: Partial<Profile>`：更新したい項目を格納した実体．
+- **戻り値**：`Promise<boolean>`
+  - 更新の成否を真偽値で返す．
+- **業務詳細**：
+  1. プロフィールリポジトリの `upsert` 機能を呼び出し，指定された項目の上書き保存を行う．
+- **依存関係**：
+  - `IProfileRepository`：プロフィールデータの更新を担当する．
+
+---
+
+### `GetStatsUseCase.ts` (統計資料算出機能)
+管理者向けに，来場者数や標本獲得数などの集計資料を作成する．
+
+#### 構造解説
+本実体は `GetStatsUseCase` クラスとして実装される．管理者向けの高度な集計を行うため，構築時に `adminRepository` と `cacheService` の二つのインターフェースを要求する設計である．集計に必要なデータの取得と，処理の高速化のための記憶制御を外部の具象実装から分離して管理している．
+
+#### `execute(period, userId)`
+- **引数**：
+  - `period: string`：集計対象の期間（例："24h"，"all"）．
+  - `userId: string | null`：個別利用者の詳細を照会を行う場合はその識別子，全体統計の場合は null を指定する．
+- **戻り値**：`Promise<any>`
+  - 集計された統計データ実体である．
+- **業務詳細（処理手順）**：
+  1. **高速記憶の参照**：全体統計の場合，まず `ICacheService`（Redis）を確認し，有効な計算結果があればそれを即座に返却する．
+  2. **運営側の除外**：`IAdminRepository` から認証済み利用者リストを取得し，管理者（メール認証ユーザー）の識別子を特定する．集計からこれらの識別子を排除し，純粋な来場者のみの数値を算出する．
+  3. **指標の計算**：有効なプロフィールを走査し，グループごとの来場人数（`party_size`）を加算して総来場者数を算出する．また，総獲得数なども同様に集計する．
+  4. **結果の保存**：新たに算出した全体統計データは，次回以降の高速化のため一定時間（300秒）高速記憶に保存する．
+- **依存関係**：
+  - `IAdminRepository`：管理者向けの情報取得を担当する．
+  - `ICacheService`：結果の一次保存と再利用を担当する．
