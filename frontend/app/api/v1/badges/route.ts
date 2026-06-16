@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { badgeController } from "@backend/src/infrastructure/di/container";
 
+export const dynamic = "force-dynamic";
+
 /**
  * パッケージ: app/api/v1/badges
  * 標本のマスターデータを提供するためのエンドポイントを提供する。

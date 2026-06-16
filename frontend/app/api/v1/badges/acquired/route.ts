@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { badgeController } from "@backend/src/infrastructure/di/container";
 
+export const dynamic = "force-dynamic";
+
 /**
  * [概要] 特定ユーザーの獲得履歴を取得する。
  */

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { profileController } from "@backend/src/infrastructure/di/container";
 
+export const dynamic = "force-dynamic";
+
 /**
  * [概要] 特定ユーザーのプロフィール情報を取得する。
  */
