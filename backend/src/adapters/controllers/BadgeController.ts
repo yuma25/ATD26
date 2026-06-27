@@ -22,13 +22,14 @@ export class BadgeController {
     try {
       const badges = await this.getAllBadgesUseCase.execute();
       return { success: true, data: badges.map((b) => BadgeSchema.parse(b)) };
-    } catch (error) {
-      console.error("❌ [BadgeController.getAll]:", error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
         success: false,
         error: {
           code: "FETCH_ERROR",
           message: "標本データの取得に失敗しました。",
+          details: message,
         },
       };
     }
@@ -49,14 +50,13 @@ export class BadgeController {
       if (error) throw error;
       return { success: true, data: data ? UserBadgeSchema.parse(data) : null };
     } catch (error: unknown) {
-      console.error("❌ [BadgeController.acquire]:", error);
       const message = error instanceof Error ? error.message : String(error);
       return {
         success: false,
         error: {
           code: "ACQUIRE_ERROR",
           message: "標本の獲得記録に失敗しました。",
-          details: error,
+          details: message,
         },
       };
     }
@@ -74,13 +74,14 @@ export class BadgeController {
         success: true,
         data: acquired.map((b) => UserBadgeSchema.parse(b)),
       };
-    } catch (error) {
-      console.error("❌ [BadgeController.getAcquired]:", error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
         success: false,
         error: {
           code: "FETCH_ACQUIRED_ERROR",
           message: "獲得履歴の取得に失敗しました。",
+          details: message,
         },
       };
     }

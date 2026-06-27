@@ -23,13 +23,14 @@ export class ProfileController {
         success: true,
         data: profile ? ProfileSchema.parse(profile) : null,
       };
-    } catch (error) {
-      console.error("❌ [ProfileController.get]:", error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
         success: false,
         error: {
           code: "FETCH_PROFILE_ERROR",
           message: "プロフィールの取得に失敗しました。",
+          details: message,
         },
       };
     }
@@ -45,9 +46,16 @@ export class ProfileController {
     try {
       const success = await this.updateProfileUseCase.execute(userId, updates);
       return { success };
-    } catch (error) {
-      console.error("❌ [ProfileController.update]:", error);
-      return { success: false };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        error: {
+          code: "UPDATE_PROFILE_ERROR",
+          message: "プロフィールの更新に失敗しました。",
+          details: message,
+        },
+      };
     }
   }
 }

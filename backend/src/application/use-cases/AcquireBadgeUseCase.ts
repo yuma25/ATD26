@@ -33,10 +33,8 @@ export class AcquireBadgeUseCase {
     // 1. プロフィールの存在確認と作成（必要に応じて）
     const profile = await this.profileRepository.findById(userId);
     if (!profile) {
-      console.log(`🆕 Profile not found for ${userId}, creating now...`);
       await this.profileRepository.upsert({ id: userId });
     }
-
     // 2. 獲得記録の作成
     return await this.userBadgeRepository.create(userId, badgeId);
   }

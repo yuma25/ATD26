@@ -1,50 +1,34 @@
 import { IAdminRepository } from "../../domain/repositories/IAdminRepository";
 import { ICacheService } from "../../domain/services/ICacheService";
+import { IBadgeRepository } from "../../domain/repositories/IBadgeRepository";
+import { calculateProgress } from "../../domain/logic/logic";
 
 /**
  * [概要] 管理者向けの統計データ（来場者数、デバイス数など）を集計・取得するユースケース。
- *
- * [依存関係]
- * - IAdminRepository: 管理者向けの全データ取得やSupabase Authへのアクセスを担当。
- * - ICacheService: 集計結果のキャッシングを担当し、DB負荷を軽減する。
  */
 export class GetStatsUseCase {
   constructor(
     private adminRepository: IAdminRepository,
+    private badgeRepository: IBadgeRepository,
     private cacheService: ICacheService,
   ) {}
 
-  /**
-   * [実行] 統計データを取得する。必要に応じてキャッシュを利用する。
-   *
-   * @param period 集計期間。
-   * @param userId 特定ユーザーの照会を行う場合のユーザーID（null の場合は全体統計）。
-   *
-   * [技術的ステップ]
-   * 1. キャッシュ確認: 全体統計の場合、Redis キャッシュを優先して参照する。
-   * 2. スタッフ除外: 認証ユーザーリストから管理者（スタッフ）を抽出し、集計対象から除外する。
-   * 3. データ加工: 全プロフィールから人数を合計し、来場者数などを算出する。
-   * 4. キャッシュ保存: 新たに計算した全体統計結果は Redis に一時保存する。
-   */
   async execute(period: string, userId: string | null) {
-    // キャッシュキーの生成
     const cacheKey = userId
       ? `stats_user_${userId}_${period}`
       : `stats_global_${period}`;
-
-    // キャッシュの確認（個別ユーザーでない場合）
     if (!userId) {
       const cached = await this.cacheService.get(cacheKey);
       if (cached) return { data: cached, fromCache: true };
     }
 
-    // データの取得と加工（従来のロジックをここに移植）
-    // ... 簡略化のため、詳細はリポジトリからの取得のみとする
+    // 1. スタッフ除外用のIDリスト取得
     const adminUsers = await this.adminRepository.listAuthUsers();
     const adminIds = adminUsers
       .filter((u) => u?.app_metadata?.provider === "email" && !u?.is_anonymous)
       .map((u) => u.id);
 
+    // 2. プロフィール集計（来場者数・デバイス数）
     const allProfiles = await this.adminRepository.getAllProfiles();
     const profiles = allProfiles.filter(
       (p) => p?.id && !adminIds.includes(p.id),
@@ -56,10 +40,86 @@ export class GetStatsUseCase {
       0,
     );
 
+    // 3. 発見率の計算
+    const allBadges = await this.badgeRepository.findAll();
+    const totalBadgeTypes = allBadges.length;
+
+    const sinceDate = new Date(0); // 全期間
+    const allAcquisitions =
+      await this.adminRepository.getBadgesSince(sinceDate);
+    const userAcquisitions = allAcquisitions.filter(
+      (a) => !adminIds.includes(a.user_id),
+    );
+
+    // 平均発見率 = (全非管理者の獲得数) / (非管理者デバイス数 * 全標本種数)
+    const averageDiscoveryRate =
+      totalDevices > 0 && totalBadgeTypes > 0
+        ? calculateProgress(
+            totalDevices * totalBadgeTypes,
+            userAcquisitions.length,
+          )
+        : 0;
+
+    // 4. 最近アクティブだったユーザーのリスト (最新10件)
+    const recentUsers = profiles.slice(0, 10).map((p) => ({
+      id: p.id,
+      party_size: p.party_size || 1,
+      created_at: p.created_at ? p.created_at.split(/[ T]/)[0] : "",
+      last_seen: p.last_seen,
+    }));
+
+    // 5. アクティビティ推移 (hourlyStats) とデバイス推移
+    const daysToTrack = period === "week" || period === "24h" ? 7 : 30;
+    const statsMap: Record<
+      string,
+      { hour: string; devices: number; badges: number }
+    > = {};
+    const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+
+    for (let i = 0; i < daysToTrack; i++) {
+      const d = new Date(jstNow);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      statsMap[dateStr] = { hour: dateStr, devices: 0, badges: 0 };
+    }
+
+    profiles.forEach((p) => {
+      if (p.created_at) {
+        const dateStr = p.created_at.split(/[ T]/)[0];
+        if (statsMap[dateStr] !== undefined) {
+          statsMap[dateStr].devices++;
+        }
+      }
+    });
+
+    userAcquisitions.forEach((a) => {
+      if (a.acquired_at) {
+        const dateStr = a.acquired_at.split(/[ T]/)[0];
+        if (statsMap[dateStr] !== undefined) {
+          statsMap[dateStr].badges++;
+        }
+      }
+    });
+
+    const hourlyStats = Object.values(statsMap).sort((a, b) =>
+      a.hour.localeCompare(b.hour),
+    );
+    const trendData = this.calculateTrend(userAcquisitions, daysToTrack);
+
     const data = {
       totalVisitors,
       totalDevices,
-      // ... 他の統計項目も同様に計算
+      totalBadges: userAcquisitions.length, // UIが期待するキー
+      recentUsers, // UIが期待するキー
+      hourlyStats, // UIが期待するキー
+      discoveryCount: userAcquisitions.length,
+      totalAcquisitions: userAcquisitions.length, // 互換性のため
+      discoveryRate:
+        totalDevices > 0
+          ? Number((userAcquisitions.length / totalDevices).toFixed(2))
+          : 0,
+      averageDiscoveryRate,
+      activityTrend: trendData,
     };
 
     if (!userId) {
@@ -67,5 +127,35 @@ export class GetStatsUseCase {
     }
 
     return { data, fromCache: false };
+  }
+
+  /**
+   * 獲得記録から日付ごとの集計データを作成する
+   */
+  private calculateTrend(acquisitions: any[], days: number) {
+    const trend: Record<string, number> = {};
+    // DBに合わせて JST で計算
+    const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+
+    // 直近の日付枠を初期化
+    for (let i = 0; i < days; i++) {
+      const d = new Date(jstNow);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      trend[dateStr] = 0;
+    }
+
+    // データをマッピング
+    acquisitions.forEach((a) => {
+      // "YYYY-MM-DD HH:mm:ss" または "YYYY-MM-DDTHH:mm:ss" の両方に対応
+      const dateStr = a.acquired_at.split(/[ T]/)[0];
+      if (trend[dateStr] !== undefined) {
+        trend[dateStr]++;
+      }
+    });
+
+    return Object.entries(trend)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }
 }

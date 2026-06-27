@@ -4,7 +4,7 @@ import { UserBadge } from "../../domain/entities/UserBadge";
 import { supabaseAdmin } from "../external/supabase";
 import { db } from "../db";
 import { profiles, userBadges } from "../db/schema";
-import { desc, gte } from "drizzle-orm";
+import { desc, gte, sql } from "drizzle-orm";
 import { ProfileSchema } from "../../domain/entities/Profile";
 import { UserBadgeSchema } from "../../domain/entities/UserBadge";
 
@@ -46,9 +46,13 @@ export class DrizzleAdminRepository implements IAdminRepository {
    * @param date 集計開始日時。
    */
   async getBadgesSince(date: Date): Promise<UserBadge[]> {
+    // DBが JST (UTC+9) で保存されているため、クエリ条件も JST に合わせる
+    const jstOffset = 9 * 60 * 60 * 1000;
+    const jstDate = new Date(date.getTime() + jstOffset);
+    const jstString = jstDate.toISOString().replace("T", " ").split(".")[0];
+
     const results = await db.query.userBadges.findMany({
-      where: (userBadges, { gte }) =>
-        gte(userBadges.acquiredAt, date.toISOString()),
+      where: (userBadges, { gte }) => gte(userBadges.acquiredAt, jstString),
     });
     return results.map((r) =>
       UserBadgeSchema.parse({
@@ -64,7 +68,9 @@ export class DrizzleAdminRepository implements IAdminRepository {
    * [実行] システム全体の総獲得標本数を取得する。
    */
   async getTotalBadgeCount(): Promise<number> {
-    const result = await db.select({ count: userBadges.id }).from(userBadges);
-    return result.length;
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(userBadges);
+    return Number(result[0]?.count || 0);
   }
 }

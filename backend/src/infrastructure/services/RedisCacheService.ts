@@ -27,8 +27,9 @@ export class RedisCacheService implements ICacheService {
       });
       const data = await res.json();
       return data.result ? (JSON.parse(data.result) as T) : null;
-    } catch (e) {
-      console.warn(`[RedisCacheService] Get Error (key: ${key}):`, e);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[RedisCacheService] Get Error (key: ${key}):`, message);
       return null;
     }
   }
@@ -53,8 +54,9 @@ export class RedisCacheService implements ICacheService {
         body: JSON.stringify(value),
       });
       return true;
-    } catch (e) {
-      console.warn(`[RedisCacheService] Set Error (key: ${key}):`, e);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[RedisCacheService] Set Error (key: ${key}):`, message);
       return false;
     }
   }
@@ -75,8 +77,9 @@ export class RedisCacheService implements ICacheService {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
-    } catch (e) {
-      console.warn(`[RedisCacheService] Delete Error (key: ${key}):`, e);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[RedisCacheService] Delete Error (key: ${key}):`, message);
     }
   }
 }

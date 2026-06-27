@@ -4,7 +4,7 @@
   <img src="./docs/images/cover.png" alt="ATD26_SCIENCE-ART Architecture Cover" width="100%">
 </p>
 
-AR（拡張現実）技術を用いた絵画コレクション・管理アプリケーション。実世界の画像認識を通じて3D作品を発見し、獲得した作品のデジタル図録（2D画像）をユーザーごとに永続化します。
+AR（拡張現実）技術を用いた絵画コレクション・管理アプリケーション．実世界の画像認識を通じて3D作品を発見し，獲得した作品のデジタル図録（2D画像）をユーザーごとに永続化する．
 
 ---
 
@@ -21,7 +21,7 @@ AR（拡張現実）技術を用いた絵画コレクション・管理アプリ
 ### Backend / Infrastructure
 
 - **BaaS**: Supabase (PostgreSQL / Auth / Storage)
-- **Cache**: Redis (Upstash) - 統計データの高速集計、レートリミットに使用
+- **Cache**: Redis (Upstash) - 統計データの高速集計，レートリミットに使用
 - **Data Validation**: Zod
 
 ### Development / Quality
@@ -34,19 +34,33 @@ AR（拡張現実）技術を用いた絵画コレクション・管理アプリ
 
 ## 📖 開発ドキュメント
 
-詳細なシステム設計については，以下の各仕様書を参照のこと．
+詳細なシステム設計については，以下の各仕様書およびアーキテクチャガイドを参照のこと．
+
+### 🏛️ アーキテクチャ設計ガイドライン
+
+システム全体の構造，データフロー，および設計思想を把握するためのガイドである．
+
+- **[システム全体のアーキテクチャとデータフロー図解](./docs/architecture_and_dataflow.md)**：フロント・バックエンドの結合構造とデータ遷移シーケンス図．
+- **[バックエンド クリーンアーキテクチャ ガイド](./docs/clean_architecture_guide.md)**：バックエンドの4層構造，DIP（依存関係逆転），およびディレクトリ構成の解説．
+- **[フロントエンド アーキテクチャと通信ガイド](./docs/frontend_architecture_guide.md)**：Next.js App Router，SWR，およびBFF（API Routes）のデータ取得・更新フロー．
+- **[フロントエンドの設計思想とクリーンアーキテクチャとの比較](./docs/frontend_clean_architecture_comparison.md)**：フロントエンドにおける「関心の分離（UIとロジックの分離）」とクリーンアーキテクチャ概念の対比．
+
+### 🛠️ 技術詳細リファレンス (`docs/`)
+
+各レイヤーごとの具体的な仕様・構造定義である．
 
 - **バックエンド技術リファレンス (`docs/backend_ref/`)**
-  - [Domain Layer](./docs/backend_ref/DOMAIN_LAYER.md)：エンティティとインターフェース定義
-  - [Application Layer](./docs/backend_ref/APPLICATION_LAYER.md)：ユースケースの詳細
-  - [Infrastructure Layer](./docs/backend_ref/INFRASTRUCTURE_LAYER.md)：データベース構造，Drizzle ORM実装
-  - [Adapters Layer](./docs/backend_ref/ADAPTERS_LAYER.md)：APIコントローラー仕様
+  - [Domain Layer](./docs/backend_ref/domain_layer.md)：エンティティとインターフェース定義
+  - [Application Layer](./docs/backend_ref/application_layer.md)：ユースケースの詳細
+  - [Infrastructure Layer](./docs/backend_ref/infrastructure_layer.md)：データベース構造，Drizzle ORM実装
+  - [Adapters Layer](./docs/backend_ref/adapters_layer.md)：APIコントローラー仕様
+  - [API仕様まとめ](./docs/backend_ref/api_summary.md)：提供API一覧と各レイヤーでの作業手順
 - **フロントエンド技術リファレンス (`docs/frontend_ref/`)**
-  - [App Layer](./docs/frontend_ref/APP_LAYER.md)：画面構成とAPI通信経路
-  - [Components Layer](./docs/frontend_ref/COMPONENTS_LAYER.md)：UI部品の仕様と演出
-  - [Hooks Layer](./docs/frontend_ref/HOOKS_LAYER.md)：状態管理と非同期通信処理
-  - [Utils & Types Layer](./docs/frontend_ref/UTILS_LAYER.md)：共通処理とグローバル型定義
-  - [Public Assets Layer](./docs/frontend_ref/ASSETS_LAYER.md)：静的資産（3D模型，AR標的等）の管理
+  - [App Layer](./docs/frontend_ref/app_layer.md)：画面構成とAPI通信経路
+  - [Components Layer](./docs/frontend_ref/components_layer.md)：UI部品の仕様と演出
+  - [Hooks Layer](./docs/frontend_ref/hooks_layer.md)：状態管理と非同期通信処理
+  - [Utils & Types Layer](./docs/frontend_ref/utils_layer.md)：共通処理とグローバル型定義
+  - [Public Assets Layer](./docs/frontend_ref/assets_layer.md)：静的資産（3D模型，AR標的等）の管理
 - [⚖️ ライセンス・法的事項](./THIRD_PARTY_LICENSES.md)
   - 使用ライブラリの帰属表示，プライバシーポリシー，利用規約
 
@@ -54,12 +68,12 @@ AR（拡張現実）技術を用いた絵画コレクション・管理アプリ
 
 ## ⚖️ ライセンスと法的事項
 
-本プロジェクトはプロフェッショナルな標準に基づき、以下の法的ドキュメントを整備しています。
+本プロジェクトはプロフェッショナルな標準に基づき，以下の法的ドキュメントを整備している．
 
-- **[MIT License](./LICENSE)**: プロジェクト本体のライセンス。
-- **[サードパーティ通知](./THIRD_PARTY_LICENSES.md)**: MindAR.js (TensorFlow.js, OpenCV.js 含む)、Next.js 等の主要ライブラリの帰属表示。
-- **[プライバシーポリシー](./docs/LEGAL/PRIVACY_POLICY.md)**: ARカメラ利用（映像はデバイス内処理のみ）、データ収集に関するポリシー。
-- **[利用規約](./docs/LEGAL/TERMS_OF_SERVICE.md)**: 知的財産権の保護、AR利用時の安全上の免責事項。
+- **[MIT License](./LICENSE)**: プロジェクト本体のライセンス．
+- **[サードパーティ通知](./THIRD_PARTY_LICENSES.md)**: MindAR.js (TensorFlow.js, OpenCV.js 含む)，Next.js 等の主要ライブラリの帰属表示．
+- **[プライバシーポリシー](./docs/LEGAL/PRIVACY_POLICY.md)**: ARカメラ利用（映像はデバイス内処理のみ），データ収集に関するポリシー．
+- **[利用規約](./docs/LEGAL/TERMS_OF_SERVICE.md)**: 知的財産権の保護，AR利用時の安全上の免責事項．
 
 ---
 
@@ -113,25 +127,19 @@ pnpm install
 cp frontend/.env.local.example frontend/.env.local
 ```
 
-作成した `frontend/.env.local` に，以下の構成情報を入力する．
+作成した `frontend/.env.local` に，以下の構成情報を入力する（※値にダブルクォーテーション `"` は含めないこと）．
 
 ```env
 # --- データベース設定 ---
 # Drizzle ORM が PostgreSQL に接続するための URL (マイグレーション・シード用)
-# Supabase Dashboard > Project Settings > Database > Connection string (Connection Pooler) から取得する．
-# ※ IPv4 環境から接続するため、ポート番号が 6543 となるプーラー URL の使用を推奨する．
 DATABASE_URL=postgres://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 
 # --- Supabase 設定 ---
-# クライアントサイド (ブラウザ) で使用する公開キー群
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-
-# サーバーサイド (API Routes) で管理操作を行うための特権キー（⚠️ 外部公開厳禁）
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # --- Redis 設定 (Upstash) ---
-# 統計データのキャッシングに使用する
 UPSTASH_REDIS_REST_URL=https://xxxx.upstash.io
 UPSTASH_REDIS_REST_TOKEN=xxxx
 ```
@@ -181,11 +189,19 @@ pnpm dev
 
 ---
 
-## ✅ 開発ガイドライン
+## 🧪 テスト実行手順
 
-- **ビルド確認**: コミット前に必ず `pnpm build` が通ることを確認してください。
-- **型安全性**: `any` の使用は原則禁止です。`backend/types` のスキーマを使用してください。
-- **ドキュメント更新**: 仕様変更を伴う場合は、必ず `docs/` 内の各仕様書も更新してください。
+自動テスト（Vitest）を実行して，デバイス制御ロジックや計算処理が正常に動作するかを検証する．
+
+### ユニットテストの実行
+
+プロジェクトのルートディレクトリで以下のコマンドを実行する．
+
+```bash
+pnpm test
+```
+
+※ 内部でフロントエンド配下のテストファイル（`frontend/__tests__/*`）が実行される．
 
 ---
 

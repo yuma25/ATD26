@@ -37,7 +37,12 @@ export class DrizzleUserBadgeRepository implements IUserBadgeRepository {
           : null,
         error: null,
       };
-    } catch (error) {
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Error creating user badge:", error.message);
+      } else {
+        console.error("Unknown error creating user badge:", error);
+      }
       return { data: null, error };
     }
   }

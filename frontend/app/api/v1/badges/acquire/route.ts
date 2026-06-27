@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     // 重複登録のハンドリング（Postgres Error Code 23505）
     if (!response.success && response.error) {
-      const details = response.error.details as
+      const details = response.error.details as unknown as
         | Record<string, unknown>
         | undefined;
       if (details?.code === "23505") {

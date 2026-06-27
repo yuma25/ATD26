@@ -12,20 +12,6 @@ import { greatWave } from "./great-wave";
 import { moonJelly } from "./moon-jelly";
 
 /**
- * [概要] 標本設定のデフォルト値である。
- * 個別の設定が見つからない場合や、基本的な挙動を定義するために使用される。
- */
-export const DEFAULT_SETTINGS: SpecimenSettings = {
-  scale: "0.3 0.3 0.3",
-  outerAnimation:
-    "property: rotation; to: 0 0 360; dur: 20000; easing: linear; loop: true",
-  innerAnimation:
-    "property: position; to: 0 0 0.05; dur: 4000; easing: easeInOutSine; dir: alternate; loop: true",
-  minScale: 0.1,
-  maxScale: 1.0,
-};
-
-/**
  * [概要] 全作品（標本）の設定マッピングである。
  * 作品名をキー、それに対応する SpecimenSettings を値として保持する。
  * 各標本ファイル（common-blue.ts 等）からインポートされた設定をここに集約する。
@@ -49,7 +35,7 @@ export const SPECIMEN_SETTINGS: Record<string, SpecimenSettings> = {
  * 2. フォールバック: 検索結果が undefined の場合は DEFAULT_SETTINGS を採用する。
  */
 export const getSpecimenSettings = (name: string): SpecimenSettings => {
-  return SPECIMEN_SETTINGS[name] || DEFAULT_SETTINGS;
+  return SPECIMEN_SETTINGS[name];
 };
 
 // 型定義を外部に再エクスポートする。

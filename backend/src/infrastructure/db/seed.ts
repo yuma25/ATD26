@@ -70,8 +70,9 @@ async function seed() {
       console.log(`✅ バッジ登録: ${data.name}`);
     }
     console.log("✨ 全ての初期データの投入が完了しました。");
-  } catch (error) {
-    console.error("❌ シード実行中にエラーが発生しました:", error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("❌ シード実行中にエラーが発生しました:", message);
     process.exit(1);
   }
 }

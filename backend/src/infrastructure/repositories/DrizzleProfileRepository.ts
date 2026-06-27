@@ -17,7 +17,6 @@ export class DrizzleProfileRepository implements IProfileRepository {
     const result = await db.query.profiles.findFirst({
       where: (profiles, { eq }) => eq(profiles.id, id),
     });
-
     return result
       ? ProfileSchema.parse({
           id: result.id,

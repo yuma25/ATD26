@@ -39,7 +39,11 @@ const getAcquiredBadgesUseCase = new GetAcquiredBadgesUseCase(
 );
 const getProfileUseCase = new GetProfileUseCase(profileRepository);
 const updateProfileUseCase = new UpdateProfileUseCase(profileRepository);
-const getStatsUseCase = new GetStatsUseCase(adminRepository, cacheService);
+const getStatsUseCase = new GetStatsUseCase(
+  adminRepository,
+  badgeRepository,
+  cacheService,
+);
 
 // --- アダプター層 / コントローラー ---
 /** 標本（バッジ）操作の窓口 */

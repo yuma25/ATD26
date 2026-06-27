@@ -16,14 +16,14 @@ export class AdminController {
     try {
       const result = await this.getStatsUseCase.execute(period, userId);
       return { success: true, ...result };
-    } catch (error: any) {
-      console.error("❌ [AdminController.getStats]:", error);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       return {
         success: false,
         error: {
           code: "STATS_ERROR",
           message: "統計データの取得に失敗しました。",
-          details: error.message,
+          details: message,
         },
       };
     }
