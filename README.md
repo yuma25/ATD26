@@ -6,6 +6,18 @@
 
 AR（拡張現実）技術を用いた絵画コレクション・管理アプリケーション．実世界の画像認識を通じて3D作品を発見し，獲得した作品のデジタル図録（2D画像）をユーザーごとに永続化する．
 
+<h3 align="center">🎬 デモ動画 (Demo Video)</h3>
+
+<p align="center">
+  <a href="https://youtu.be/DSTXw9Lhr3w" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.youtube.com/vi/DSTXw9Lhr3w/maxresdefault.jpg" alt="ATD26_SCIENCE-ART デモ動画" width="640" style="border-radius: 16px; border: 1px solid rgba(0,0,0,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.15);">
+  </a>
+</p>
+
+<p align="center">
+  <sub>※画像をクリックすると YouTube でデモ動画が再生されます</sub>
+</p>
+
 ---
 
 ## 🛠 技術スタック
@@ -202,6 +214,25 @@ pnpm test
 ```
 
 ※ 内部でフロントエンド配下のテストファイル（`frontend/__tests__/*`）が実行される．
+
+---
+
+## 📸 当日の実施結果
+
+実際に展示・実施した際の結果および認識対象となった作品画像です．
+
+<table align="center" style="border: none; border-collapse: collapse;">
+  <tr style="border: none;">
+    <td align="center" style="border: none; padding: 5px;"><img src="./results/butterfly.jpg" width="220px" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><br><sub>butterfly</sub></td>
+    <td align="center" style="border: none; padding: 5px;"><img src="./results/jellyfish.jpg" width="220px" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><br><sub>jellyfish</sub></td>
+    <td align="center" style="border: none; padding: 5px;"><img src="./results/shellcrab.jpg" width="220px" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><br><sub>shellcrab</sub></td>
+  </tr>
+  <tr style="border: none;">
+    <td align="center" style="border: none; padding: 5px;"><img src="./results/sword.jpg" width="220px" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><br><sub>sword</sub></td>
+    <td align="center" style="border: none; padding: 5px;"><img src="./results/wave.jpg" width="220px" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><br><sub>wave</sub></td>
+    <td align="center" style="border: none; padding: 5px;"><img src="./results/whale.jpg" width="220px" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><br><sub>whale</sub></td>
+  </tr>
+</table>
 
 ---
 
